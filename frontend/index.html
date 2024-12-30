@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Memorize</title>
+  <style>
+    /* Your styles here */
+  </style>
+</head>
+<body>
+  <div id="app">
+    <h1>Memorize</h1>
+    <textarea id="text-input" placeholder="Enter text"></textarea>
+    <button id="generate">Generate Audio</button>
+    <div id="audio-list"></div>
+  </div>
+  <script>
+    const backendUrl = 'https://your-backend-url.onrender.com';
+
+    document.getElementById('generate').addEventListener('click', async () => {
+      const text = document.getElementById('text-input').value;
+      if (!text) {
+        alert('Please enter some text.');
+        return;
+      }
+
+      const response = await fetch(`${backendUrl}/generate-audio`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text }),
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        alert('Audio generated!');
+      } else {
+        alert('Error generating audio.');
+      }
+    });
+  </script>
+</body>
+</html>
