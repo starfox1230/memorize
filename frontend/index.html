@@ -2,44 +2,164 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Memorize</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    /* Your styles here */
+    /* Basic styling */
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background-color: #f4f4f4;
+    }
+    .container {
+      max-width: 600px;
+      margin: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    textarea {
+      width: 100%;
+      height: 100px;
+      margin-bottom: 10px;
+      padding: 10px;
+      resize: vertical;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    select, button {
+      padding: 10px;
+      margin-right: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button {
+      background-color: #28a745;
+      color: white;
+      border: none;
+    }
+    button:disabled {
+      background-color: #6c757d;
+      cursor: not-allowed;
+    }
+    .audio-list {
+      margin-top: 20px;
+    }
+    .audio-item {
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      background-color: #f9f9f9;
+    }
+    .audio-item audio {
+      margin-right: 10px;
+    }
+    .audio-info {
+      flex-grow: 1;
+    }
   </style>
 </head>
 <body>
-  <div id="app">
+  <div class="container">
     <h1>Memorize</h1>
-    <textarea id="text-input" placeholder="Enter text"></textarea>
-    <button id="generate">Generate Audio</button>
-    <div id="audio-list"></div>
-  </div>
-  <script>
-    const backendUrl = 'https://your-backend-url.onrender.com';
+    <textarea id="text-input" placeholder="Enter text here..."></textarea>
+    <br>
+    <select id="voice-select">
+      <option value="alloy">Alloy</option>
+      <option value="en-US-Wavenet-D">English (US) - WaveNet D</option>
+      <option value="en-GB-Wavenet-B">English (UK) - WaveNet B</option>
+      <!-- Add more voice options as per OpenAI's available voices -->
+    </select>
+    <button id="generate-btn">Generate Audio</button>
 
-    document.getElementById('generate').addEventListener('click', async () => {
-      const text = document.getElementById('text-input').value;
+    <div class="audio-list" id="audio-list">
+      <h2>Generated Audios</h2>
+      <!-- Dynamic audio list will appear here -->
+    </div>
+  </div>
+
+  <script>
+    const generateBtn = document.getElementById('generate-btn');
+    const textInput = document.getElementById('text-input');
+    const voiceSelect = document.getElementById('voice-select');
+    const audioList = document.getElementById('audio-list');
+
+    // Replace with your deployed backend URL on Render
+    const BACKEND_URL = 'https://your-backend-url.onrender.com';
+
+    generateBtn.addEventListener('click', async () => {
+      const text = textInput.value.trim();
+      const voice = voiceSelect.value;
+
       if (!text) {
         alert('Please enter some text.');
         return;
       }
 
-      const response = await fetch(`${backendUrl}/generate-audio`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ text }),
-      });
+      try {
+        generateBtn.disabled = true;
+        generateBtn.innerText = 'Generating...';
 
-      const data = await response.json();
-      if (response.ok) {
-        alert('Audio generated!');
-      } else {
-        alert('Error generating audio.');
+        const response = await fetch(`${BACKEND_URL}/generate-audio`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text, voice })
+        });
+
+        const data = await response.json();
+        if (response.ok) {
+          alert('Audio generated successfully!');
+          textInput.value = '';
+          fetchAudios();
+        } else {
+          alert(`Error: ${data.error}`);
+        }
+      } catch (error) {
+        console.error('Error generating audio:', error);
+        alert('Failed to generate audio.');
+      } finally {
+        generateBtn.disabled = false;
+        generateBtn.innerText = 'Generate Audio';
       }
     });
+
+    async function fetchAudios() {
+      try {
+        const res = await fetch(`${BACKEND_URL}/audios`);
+        const audios = await res.json();
+
+        audioList.innerHTML = '<h2>Generated Audios</h2>';
+        audios.forEach(audio => {
+          const audioItem = document.createElement('div');
+          audioItem.className = 'audio-item';
+
+          const audioElement = document.createElement('audio');
+          audioElement.controls = true;
+          audioElement.src = audio.url;
+
+          const info = document.createElement('div');
+          info.className = 'audio-info';
+          const timestamp = audio.timestamp
+            ? new Date(audio.timestamp.seconds * 1000).toLocaleString()
+            : 'N/A';
+          info.textContent = `${audio.text} (${timestamp})`;
+
+          audioItem.appendChild(audioElement);
+          audioItem.appendChild(info);
+          audioList.appendChild(audioItem);
+        });
+      } catch (error) {
+        console.error('Error fetching audios:', error);
+      }
+    }
+
+    // Fetch audios on page load
+    window.onload = fetchAudios;
   </script>
 </body>
 </html>
