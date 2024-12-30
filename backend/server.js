@@ -2,14 +2,14 @@
 
 import express from 'express';
 import admin from 'firebase-admin';
-import axios from 'axios';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import OpenAI from 'openai';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
-import OpenAI from 'openai';
 
+// Load environment variables from .env file
 dotenv.config();
 
 // Initialize Firebase Admin SDK
@@ -37,33 +37,41 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// Initialize OpenAI
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
 // Endpoint to generate audio
 app.post('/generate-audio', async (req, res) => {
   try {
     const { text, voice } = req.body;
 
+    console.log('Received /generate-audio request:', { text, voice });
+
     if (!text) {
+      console.warn('No text provided in the request.');
       return res.status(400).json({ error: 'Text is required.' });
     }
 
-    // Initialize OpenAI
-    const openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    });
-
     // Call OpenAI's TTS API
+    console.log('Calling OpenAI TTS API...');
     const mp3 = await openai.audio.speech.create({
       model: "tts-1",
       voice: voice || "alloy",
       input: text,
     });
 
+    console.log('Received response from OpenAI:', mp3);
+
     // Convert response to buffer
     const buffer = Buffer.from(await mp3.arrayBuffer());
+    console.log('Converted OpenAI response to buffer.');
 
     // Generate a unique filename
     const timestamp = Date.now();
     const filename = `audios/audio_${timestamp}.mp3`;
+    console.log(`Uploading audio to Firebase Storage with filename: ${filename}`);
 
     // Upload to Firebase Storage
     const file = bucket.file(filename);
@@ -72,12 +80,15 @@ app.post('/generate-audio', async (req, res) => {
         contentType: 'audio/mpeg',
       },
     });
+    console.log('Audio uploaded to Firebase Storage.');
 
     // Make the file publicly accessible
     await file.makePublic();
+    console.log('Audio file made public.');
 
     // Get the public URL
     const publicUrl = `https://storage.googleapis.com/${bucket.name}/${file.name}`;
+    console.log(`Public URL generated: ${publicUrl}`);
 
     // Save metadata to Firestore
     await db.collection('audios').add({
@@ -86,10 +97,11 @@ app.post('/generate-audio', async (req, res) => {
       timestamp: admin.firestore.FieldValue.serverTimestamp(),
       voice: voice || "alloy",
     });
+    console.log('Audio metadata saved to Firestore.');
 
     res.status(200).json({ message: 'Audio generated successfully.', url: publicUrl });
   } catch (error) {
-    console.error('Error generating audio:', error.message);
+    console.error('Error generating audio:', error);
     res.status(500).json({ error: 'Failed to generate audio.' });
   }
 });
@@ -97,14 +109,16 @@ app.post('/generate-audio', async (req, res) => {
 // Endpoint to fetch audio list
 app.get('/audios', async (req, res) => {
   try {
+    console.log('Received /audios request.');
     const audiosSnapshot = await db.collection('audios').orderBy('timestamp', 'desc').get();
     const audios = [];
     audiosSnapshot.forEach(doc => {
       audios.push({ id: doc.id, ...doc.data() });
     });
+    console.log('Fetched audios from Firestore:', audios.length);
     res.status(200).json(audios);
   } catch (error) {
-    console.error('Error fetching audios:', error.message);
+    console.error('Error fetching audios:', error);
     res.status(500).json({ error: 'Failed to fetch audios.' });
   }
 });
