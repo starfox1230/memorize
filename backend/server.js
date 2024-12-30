@@ -33,7 +33,7 @@ const PORT = process.env.PORT || 5000;
 // Middleware
 app.use(cors({
   origin: 'https://starfox1230.github.io', // Replace with your GitHub Pages URL
-  methods: ['GET', 'POST']
+  methods: ['GET', 'POST', 'DELETE']
 }));
 app.use(express.json());
 
@@ -91,15 +91,15 @@ app.post('/generate-audio', async (req, res) => {
     console.log(`Public URL generated: ${publicUrl}`);
 
     // Save metadata to Firestore
-    await db.collection('audios').add({
+    const docRef = await db.collection('audios').add({
       text: text,
       url: publicUrl,
       timestamp: admin.firestore.FieldValue.serverTimestamp(),
       voice: voice || "alloy",
     });
-    console.log('Audio metadata saved to Firestore.');
+    console.log('Audio metadata saved to Firestore with ID:', docRef.id);
 
-    res.status(200).json({ message: 'Audio generated successfully.', url: publicUrl });
+    res.status(200).json({ message: 'Audio generated successfully.', url: publicUrl, id: docRef.id });
   } catch (error) {
     console.error('Error generating audio:', error);
     res.status(500).json({ error: 'Failed to generate audio.' });
@@ -120,6 +120,55 @@ app.get('/audios', async (req, res) => {
   } catch (error) {
     console.error('Error fetching audios:', error);
     res.status(500).json({ error: 'Failed to fetch audios.' });
+  }
+});
+
+// Endpoint to delete audio
+app.delete('/delete-audio', async (req, res) => {
+  try {
+    const { id } = req.body;
+
+    console.log('Received /delete-audio request for ID:', id);
+
+    if (!id) {
+      console.warn('No ID provided in the request.');
+      return res.status(400).json({ error: 'Audio ID is required.' });
+    }
+
+    // Fetch the document from Firestore
+    const docRef = db.collection('audios').doc(id);
+    const doc = await docRef.get();
+
+    if (!doc.exists) {
+      console.warn(`No audio found with ID: ${id}`);
+      return res.status(404).json({ error: 'Audio not found.' });
+    }
+
+    const audioData = doc.data();
+    const fileUrl = audioData.url;
+
+    // Extract the filename from the URL
+    // Assuming URL format: https://storage.googleapis.com/<bucket>/<filename>
+    const urlParts = fileUrl.split('/');
+    const filename = urlParts.slice(3).join('/'); // skip 'https:', '', 'storage.googleapis.com'
+
+    console.log(`Deleting file: ${filename} from Firebase Storage.`);
+
+    // Delete the file from Firebase Storage
+    const file = bucket.file(filename);
+    await file.delete();
+
+    console.log(`File ${filename} deleted from Firebase Storage.`);
+
+    // Delete the document from Firestore
+    await docRef.delete();
+
+    console.log(`Document with ID ${id} deleted from Firestore.`);
+
+    res.status(200).json({ message: 'Audio deleted successfully.' });
+  } catch (error) {
+    console.error('Error deleting audio:', error);
+    res.status(500).json({ error: 'Failed to delete audio.' });
   }
 });
 
