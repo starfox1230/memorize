@@ -32,7 +32,7 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors({
-  origin: 'https://your-username.github.io/memorize/', // Replace with your GitHub Pages URL
+  origin: 'https://starfox1230.github.io/memorize/', // Replace with your GitHub Pages URL
   methods: ['GET', 'POST']
 }));
 app.use(express.json());
