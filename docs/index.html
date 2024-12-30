@@ -55,6 +55,22 @@
       color: var(--text-color);
     }
 
+    .title-input {
+      width: 100%;
+      padding: 12px 15px;
+      margin-bottom: 15px;
+      border: 1px solid var(--input-border);
+      border-radius: 6px;
+      background-color: var(--input-bg);
+      color: var(--text-color);
+      font-size: 16px;
+      transition: background-color 0.3s, color 0.3s, border 0.3s;
+    }
+
+    .title-input::placeholder {
+      color: var(--secondary-text-color);
+    }
+
     textarea {
       width: 100%;
       height: 120px;
@@ -114,6 +130,10 @@
       color: #fff;
       border: none;
       transition: background-color 0.3s;
+      padding: 8px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
     }
 
     .delete-btn:hover {
@@ -126,7 +146,8 @@
 
     .audio-item {
       display: flex;
-      align-items: center;
+      flex-direction: column;
+      align-items: flex-start;
       margin-bottom: 15px;
       padding: 15px;
       border: 1px solid var(--border-color);
@@ -136,9 +157,36 @@
       transition: background-color 0.3s, box-shadow 0.3s, border 0.3s;
     }
 
-    .audio-item audio {
-      margin-right: 15px;
-      width: 150px;
+    .audio-item button.title-button {
+      width: 100%;
+      text-align: left;
+      padding: 10px 15px;
+      background-color: var(--button-bg);
+      color: var(--button-color);
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background-color 0.3s;
+      margin-bottom: 10px;
+    }
+
+    .audio-item button.title-button:hover {
+      background-color: var(--button-hover-bg);
+    }
+
+    .details-container {
+      width: 100%;
+      display: none; /* Hidden by default */
+    }
+
+    .details-container.active {
+      display: block;
+    }
+
+    .details-container audio {
+      margin-bottom: 10px;
+      width: 100%;
       height: 30px;
       background-color: var(--background-color);
       border-radius: 4px;
@@ -146,9 +194,9 @@
     }
 
     .audio-info {
-      flex-grow: 1;
       font-size: 16px;
       color: var(--text-color);
+      margin-bottom: 10px;
     }
 
     /* Responsive Design */
@@ -156,11 +204,6 @@
       .audio-item {
         flex-direction: column;
         align-items: flex-start;
-      }
-
-      .audio-item audio {
-        width: 100%;
-        margin-bottom: 10px;
       }
 
       select, button {
@@ -177,6 +220,11 @@
 <body>
   <div class="container">
     <h1>Memorize</h1>
+
+    <!-- Title Input Field -->
+    <input type="text" id="title-input" class="title-input" placeholder="Enter title here..." />
+
+    <!-- Text Input Field -->
     <textarea id="text-input" placeholder="Enter text here..."></textarea>
     <br>
     <select id="voice-select">
@@ -199,6 +247,7 @@
 <script>
   const generateBtn = document.getElementById('generate-btn');
   const textInput = document.getElementById('text-input');
+  const titleInput = document.getElementById('title-input'); // New title input
   const voiceSelect = document.getElementById('voice-select');
   const audioList = document.getElementById('audio-list');
 
@@ -209,15 +258,17 @@
   let lastPlayedAudio = null;
 
   generateBtn.addEventListener('click', async () => {
+    const title = titleInput.value.trim(); // Get title
     const text = textInput.value.trim();
     const voice = voiceSelect.value;
 
     console.log('Generate Audio Button Clicked');
+    console.log('Title:', title);
     console.log('Text:', text);
     console.log('Voice:', voice);
 
-    if (!text) {
-      alert('Please enter some text.');
+    if (!title || !text) { // Validate title and text
+      alert('Please enter both a title and some text.');
       return;
     }
 
@@ -229,7 +280,7 @@
       const response = await fetch(`${BACKEND_URL}/generate-audio`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, voice })
+        body: JSON.stringify({ title, text, voice }) // Send title
       });
 
       console.log('Received response:', response);
@@ -239,6 +290,7 @@
 
       if (response.ok) {
         alert('Audio generated successfully!');
+        titleInput.value = ''; // Clear title input
         textInput.value = '';
         fetchAudios();
       } else {
@@ -262,6 +314,15 @@
       audios.forEach(audio => {
         const audioItem = document.createElement('div');
         audioItem.className = 'audio-item';
+
+        // Create Title Button
+        const titleButton = document.createElement('button');
+        titleButton.className = 'title-button';
+        titleButton.textContent = audio.title;
+        
+        // Create a container for details (hidden by default)
+        const detailsContainer = document.createElement('div');
+        detailsContainer.className = 'details-container';
 
         const audioElement = document.createElement('audio');
         audioElement.controls = true;
@@ -297,13 +358,23 @@
         deleteBtn.textContent = 'Delete';
         deleteBtn.addEventListener('click', () => deleteAudio(audio.id));
 
-        audioItem.appendChild(audioElement);
-        audioItem.appendChild(info);
-        audioItem.appendChild(deleteBtn);
+        // Append audio and info to details container
+        detailsContainer.appendChild(audioElement);
+        detailsContainer.appendChild(info);
+        detailsContainer.appendChild(deleteBtn);
+
+        // Toggle functionality
+        titleButton.addEventListener('click', () => {
+          detailsContainer.classList.toggle('active');
+        });
+
+        audioItem.appendChild(titleButton);
+        audioItem.appendChild(detailsContainer);
         audioList.appendChild(audioItem);
       });
     } catch (error) {
       console.error('Error fetching audios:', error);
+      alert('Failed to fetch audios.');
     }
   }
 
