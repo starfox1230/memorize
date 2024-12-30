@@ -6,10 +6,9 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import OpenAI from 'openai';
 
-// Load environment variables from .env file
+// Load environment variables
 dotenv.config();
 
-// Initialize Firebase Admin SDK
 const serviceAccount = {
   projectId: process.env.FIREBASE_PROJECT_ID,
   clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
@@ -30,7 +29,7 @@ const PORT = process.env.PORT || 5000;
 // Middleware
 app.use(
   cors({
-    origin: 'https://starfox1230.github.io', // Your GitHub Pages URL without trailing slash
+    origin: 'https://starfox1230.github.io', // or your domain
     methods: ['GET', 'POST', 'DELETE'],
   })
 );
@@ -41,139 +40,133 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Endpoint to generate audio
+// -------------------------
+//  /generate-audio
+// -------------------------
 app.post('/generate-audio', async (req, res) => {
   try {
-    const { title, text, voice } = req.body; // <-- Accept 'title'
+    const { user, title, text, voice } = req.body;
+    console.log('/generate-audio request:', { user, title, text, voice });
 
-    console.log('Received /generate-audio request:', { title, text, voice });
-
-    // Validate input
-    if (!title || !text) { // <-- Validate 'title' and 'text'
-      console.warn('Title or text not provided in the request.');
+    if (!title || !text) {
       return res.status(400).json({ error: 'Title and text are required.' });
+    }
+    if (!user) {
+      return res.status(400).json({ error: 'User is required.' });
     }
 
     // Call OpenAI's TTS API
-    console.log('Calling OpenAI TTS API...');
     const mp3 = await openai.audio.speech.create({
       model: 'tts-1',
       voice: voice || 'alloy',
       input: text,
     });
 
-    console.log('Received response from OpenAI:', mp3);
-
-    // Convert response to buffer
     const buffer = Buffer.from(await mp3.arrayBuffer());
-    console.log('Converted OpenAI response to buffer.');
-
-    // Generate a unique filename
     const timestamp = Date.now();
     const filename = `audios/audio_${timestamp}.mp3`;
-    console.log(`Uploading audio to Firebase Storage with filename: ${filename}`);
 
-    // Upload to Firebase Storage
     const file = bucket.file(filename);
-    await file.save(buffer, {
-      metadata: {
-        contentType: 'audio/mpeg',
-      },
-    });
-    console.log('Audio uploaded to Firebase Storage.');
-
-    // Make the file publicly accessible
+    await file.save(buffer, { metadata: { contentType: 'audio/mpeg' } });
     await file.makePublic();
-    console.log('Audio file made public.');
 
-    // Get the public URL
     const publicUrl = `https://storage.googleapis.com/${bucket.name}/${file.name}`;
-    console.log(`Public URL generated: ${publicUrl}`);
 
-    // Save metadata to Firestore, including the raw filePath for deletion
+    // Store doc with 'user' and 'title'
     const docRef = await db.collection('audios').add({
-      title: title, // <-- Store 'title'
-      text: text,
+      user,
+      title,
+      text,
       url: publicUrl,
       voice: voice || 'alloy',
       timestamp: admin.firestore.FieldValue.serverTimestamp(),
-      filePath: filename, // Store the exact path in Firestore
+      filePath: filename,
     });
-    console.log('Audio metadata saved to Firestore with ID:', docRef.id);
 
-    res
-      .status(200)
-      .json({ message: 'Audio generated successfully.', url: publicUrl, id: docRef.id });
+    return res.status(200).json({
+      message: 'Audio generated successfully.',
+      url: publicUrl,
+      id: docRef.id,
+    });
   } catch (error) {
     console.error('Error generating audio:', error);
-    res.status(500).json({ error: 'Failed to generate audio.' });
+    return res.status(500).json({ error: 'Failed to generate audio.' });
   }
 });
 
-// Endpoint to fetch audio list
+// -------------------------
+//  /audios
+// -------------------------
+//
+// Optional approach: 
+//  if you send ?user=someUser in the query string, 
+//  then we'll filter. If no user param is provided, 
+//  we return all audios.
+//
 app.get('/audios', async (req, res) => {
   try {
-    console.log('Received /audios request.');
-    const audiosSnapshot = await db.collection('audios').orderBy('timestamp', 'desc').get();
+    const { user } = req.query; // or use req.body if you prefer POST
+    console.log('Received /audios request. user=', user);
+
+    let query = db.collection('audios').orderBy('timestamp', 'desc');
+    if (user) {
+      query = query.where('user', '==', user);
+    }
+
+    const snapshot = await query.get();
     const audios = [];
-    audiosSnapshot.forEach((doc) => {
+    snapshot.forEach((doc) => {
       audios.push({ id: doc.id, ...doc.data() });
     });
-    console.log('Fetched audios from Firestore:', audios.length);
-    res.status(200).json(audios);
+    console.log('Fetched audios:', audios.length);
+
+    return res.status(200).json(audios);
   } catch (error) {
     console.error('Error fetching audios:', error);
-    res.status(500).json({ error: 'Failed to fetch audios.' });
+    return res.status(500).json({ error: 'Failed to fetch audios.' });
   }
 });
 
-// Endpoint to delete audio
+// -------------------------
+//  /delete-audio
+// -------------------------
 app.delete('/delete-audio', async (req, res) => {
   try {
     const { id } = req.body;
-
-    console.log('Received /delete-audio request for ID:', id);
-
     if (!id) {
-      console.warn('No ID provided in the request.');
       return res.status(400).json({ error: 'Audio ID is required.' });
     }
 
-    // Fetch the document from Firestore
     const docRef = db.collection('audios').doc(id);
     const doc = await docRef.get();
 
     if (!doc.exists) {
-      console.warn(`No audio found with ID: ${id}`);
       return res.status(404).json({ error: 'Audio not found.' });
     }
 
     const audioData = doc.data();
-    // We now store the exact path in Firestore, so simply delete using audioData.filePath
     const filePath = audioData.filePath;
-    console.log(`Deleting file: ${filePath} from Firebase Storage.`);
 
-    // Delete the file from Firebase Storage
     await bucket.file(filePath).delete();
-    console.log(`File ${filePath} deleted from Firebase Storage.`);
-
-    // Delete the document from Firestore
     await docRef.delete();
-    console.log(`Document with ID ${id} deleted from Firestore.`);
 
-    res.status(200).json({ message: 'Audio deleted successfully.' });
+    return res.status(200).json({ message: 'Audio deleted successfully.' });
   } catch (error) {
     console.error('Error deleting audio:', error);
-    res.status(500).json({ error: 'Failed to delete audio.' });
+    return res.status(500).json({ error: 'Failed to delete audio.' });
   }
 });
 
-// Root endpoint
+// -------------------------
+//  Root
+// -------------------------
 app.get('/', (req, res) => {
-  res.send('Memorize API is running.');
+  res.send('Memorize API (User Filter) is running.');
 });
 
-// Start the server
+// -------------------------
+//  Listen
+// -------------------------
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+  console.log(`Server listening on port ${PORT}`);
 });
