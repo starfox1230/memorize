@@ -6,7 +6,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import OpenAI from 'openai';
 import path from 'path';
-import { fileURLToPath } from 'url';
+import { URL } from 'url'; // Import URL for parsing
 import fs from 'fs';
 
 // Load environment variables from .env file
@@ -21,7 +21,7 @@ const serviceAccount = {
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
-  storageBucket: `${process.env.FIREBASE_PROJECT_ID}.firebasestorage.app`,
+  storageBucket: `${process.env.FIREBASE_PROJECT_ID}.firebasestorage.app`, // Corrected bucket URL
 });
 
 const db = admin.firestore();
@@ -32,7 +32,7 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors({
-  origin: 'https://starfox1230.github.io', // Replace with your GitHub Pages URL
+  origin: 'https://starfox1230.github.io', // Your GitHub Pages URL without trailing slash
   methods: ['GET', 'POST', 'DELETE']
 }));
 app.use(express.json());
@@ -147,10 +147,10 @@ app.delete('/delete-audio', async (req, res) => {
     const audioData = doc.data();
     const fileUrl = audioData.url;
 
-    // Extract the filename from the URL
-    // Assuming URL format: https://storage.googleapis.com/<bucket>/<filename>
-    const urlParts = fileUrl.split('/');
-    const filename = urlParts.slice(3).join('/'); // skip 'https:', '', 'storage.googleapis.com'
+    // Extract the filename from the URL using URL module
+    const parsedUrl = new URL(fileUrl);
+    const pathname = parsedUrl.pathname; // e.g., /audios/audio_1735531928521.mp3
+    const filename = pathname.startsWith('/') ? pathname.slice(1) : pathname; // audios/audio_1735531928521.mp3
 
     console.log(`Deleting file: ${filename} from Firebase Storage.`);
 
