@@ -21,7 +21,7 @@ const serviceAccount = {
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
-  storageBucket: `${process.env.FIREBASE_PROJECT_ID}.appspot.com`,
+  storageBucket: `${process.env.FIREBASE_PROJECT_ID}.firebasestorage.app`,
 });
 
 const db = admin.firestore();
