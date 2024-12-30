@@ -199,6 +199,24 @@
       margin-bottom: 10px;
     }
 
+    /* User Selection Styles */
+    .user-selection {
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .user-selection label {
+      margin-right: 10px;
+      font-size: 16px;
+      color: var(--text-color);
+    }
+
+    .user-selection select {
+      width: 200px;
+    }
+
     /* Responsive Design */
     @media (max-width: 600px) {
       .audio-item {
@@ -220,6 +238,19 @@
 <body>
   <div class="container">
     <h1>Memorize</h1>
+
+    <!-- User Selection Dropdown -->
+    <div class="user-selection">
+      <label for="user-select">Select User:</label>
+      <select id="user-select">
+        <option value="" disabled selected>Select your identity</option>
+        <option value="Sterling">Sterling</option>
+        <option value="Mom">Mom</option>
+        <option value="Amanda">Amanda</option>
+        <option value="Ariana">Ariana</option>
+        <!-- Add more users here as needed -->
+      </select>
+    </div>
 
     <!-- Title Input Field -->
     <input type="text" id="title-input" class="title-input" placeholder="Enter title here..." />
@@ -250,6 +281,7 @@
   const titleInput = document.getElementById('title-input'); // New title input
   const voiceSelect = document.getElementById('voice-select');
   const audioList = document.getElementById('audio-list');
+  const userSelect = document.getElementById('user-select'); // User selection dropdown
 
   // Replace with your deployed backend URL on Render
   const BACKEND_URL = 'https://memorize-backend-lf3t.onrender.com'; 
@@ -257,15 +289,30 @@
   // Variable to keep track of the last interacted audio element
   let lastPlayedAudio = null;
 
+  // Current selected user
+  let currentUser = '';
+
+  // Event listener for user selection
+  userSelect.addEventListener('change', () => {
+    currentUser = userSelect.value;
+    fetchAudios();
+  });
+
   generateBtn.addEventListener('click', async () => {
     const title = titleInput.value.trim(); // Get title
     const text = textInput.value.trim();
     const voice = voiceSelect.value;
 
     console.log('Generate Audio Button Clicked');
+    console.log('User:', currentUser);
     console.log('Title:', title);
     console.log('Text:', text);
     console.log('Voice:', voice);
+
+    if (!currentUser) { // Ensure a user is selected
+      alert('Please select your identity before generating audio.');
+      return;
+    }
 
     if (!title || !text) { // Validate title and text
       alert('Please enter both a title and some text.');
@@ -280,7 +327,7 @@
       const response = await fetch(`${BACKEND_URL}/generate-audio`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, text, voice }) // Send title
+        body: JSON.stringify({ user: currentUser, title, text, voice }) // Send user
       });
 
       console.log('Received response:', response);
@@ -306,11 +353,21 @@
   });
 
   async function fetchAudios() {
+    if (!currentUser) {
+      audioList.innerHTML = '<h2>Generated Audios</h2><p>Please select your identity to view your audios.</p>';
+      return;
+    }
+
     try {
-      const res = await fetch(`${BACKEND_URL}/audios`);
+      const res = await fetch(`${BACKEND_URL}/audios?user=${encodeURIComponent(currentUser)}`);
       const audios = await res.json();
 
       audioList.innerHTML = '<h2>Generated Audios</h2>';
+      if (audios.length === 0) {
+        audioList.innerHTML += '<p>No audios found for the selected user.</p>';
+        return;
+      }
+
       audios.forEach(audio => {
         const audioItem = document.createElement('div');
         audioItem.className = 'audio-item';
@@ -405,8 +462,24 @@
     }
   }
 
-  // Fetch audios on page load
-  window.onload = fetchAudios;
+  // Fetch audios when a user is selected
+  userSelect.addEventListener('change', fetchAudios);
+
+  // Fetch audios on page load if a user is already selected (e.g., from localStorage)
+  window.onload = () => {
+    // Optionally, you can persist the selected user using localStorage
+    const savedUser = localStorage.getItem('selectedUser');
+    if (savedUser) {
+      userSelect.value = savedUser;
+      currentUser = savedUser;
+      fetchAudios();
+    }
+  };
+
+  // Persist user selection in localStorage
+  userSelect.addEventListener('change', () => {
+    localStorage.setItem('selectedUser', userSelect.value);
+  });
 
   // Keyboard Shortcuts Implementation
   document.addEventListener('keydown', function(event) {
