@@ -1,3 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Memorize</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    /* Basic styling */
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background-color: #f4f4f4;
+    }
+    .container {
+      max-width: 600px;
+      margin: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    textarea {
+      width: 100%;
+      height: 100px;
+      margin-bottom: 10px;
+      padding: 10px;
+      resize: vertical;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    select, button {
+      padding: 10px;
+      margin-right: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button {
+      background-color: #28a745;
+      color: white;
+      border: none;
+    }
+    button:disabled {
+      background-color: #6c757d;
+      cursor: not-allowed;
+    }
+    .audio-list {
+      margin-top: 20px;
+    }
+    .audio-item {
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      background-color: #f9f9f9;
+    }
+    .audio-item audio {
+      margin-right: 10px;
+    }
+    .audio-info {
+      flex-grow: 1;
+    }
+    .delete-btn {
+      background-color: #dc3545;
+      margin-left: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Memorize</h1>
+    <textarea id="text-input" placeholder="Enter text here..."></textarea>
+    <br>
+    <select id="voice-select">
+      <option value="alloy">Alloy</option>
+      <option value="en-US-Wavenet-D">English (US) - WaveNet D</option>
+      <option value="en-GB-Wavenet-B">English (UK) - WaveNet B</option>
+      <!-- Add more voice options as per OpenAI's available voices -->
+    </select>
+    <button id="generate-btn">Generate Audio</button>
+
+    <div class="audio-list" id="audio-list">
+      <h2>Generated Audios</h2>
+      <!-- Dynamic audio list will appear here -->
+    </div>
+  </div>
+
 <script>
   const generateBtn = document.getElementById('generate-btn');
   const textInput = document.getElementById('text-input');
@@ -118,3 +207,6 @@
   // Fetch audios on page load
   window.onload = fetchAudios;
 </script>
+
+</body>
+</html>
