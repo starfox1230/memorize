@@ -5,9 +5,7 @@ import admin from 'firebase-admin';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import OpenAI from 'openai';
-import path from 'path';
 import { URL } from 'url'; // Import URL for parsing
-import fs from 'fs';
 
 // Load environment variables from .env file
 dotenv.config();
@@ -147,10 +145,12 @@ app.delete('/delete-audio', async (req, res) => {
     const audioData = doc.data();
     const fileUrl = audioData.url;
 
+    console.log('File URL:', fileUrl);
+
     // Extract the filename from the URL using URL module
     const parsedUrl = new URL(fileUrl);
-    const pathname = parsedUrl.pathname; // e.g., /audios/audio_1735531928521.mp3
-    const filename = pathname.startsWith('/') ? pathname.slice(1) : pathname; // audios/audio_1735531928521.mp3
+    const pathname = parsedUrl.pathname; // e.g., /audios/audio_1735530150996.mp3
+    const filename = pathname.startsWith('/') ? pathname.slice(1) : pathname; // audios/audio_1735530150996.mp3
 
     console.log(`Deleting file: ${filename} from Firebase Storage.`);
 
