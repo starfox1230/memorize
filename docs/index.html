@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html> 
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -101,6 +101,9 @@
   // Replace with your deployed backend URL on Render
   const BACKEND_URL = 'https://memorize-backend-lf3t.onrender.com'; 
 
+  // Variable to keep track of the last interacted audio element
+  let lastPlayedAudio = null;
+
   generateBtn.addEventListener('click', async () => {
     const text = textInput.value.trim();
     const voice = voiceSelect.value;
@@ -159,6 +162,24 @@
         const audioElement = document.createElement('audio');
         audioElement.controls = true;
         audioElement.src = audio.url;
+        audioElement.loop = true; // Enable looping
+
+        // Event listeners to update lastPlayedAudio when interacted with
+        audioElement.addEventListener('play', () => {
+          lastPlayedAudio = audioElement;
+        });
+        audioElement.addEventListener('pause', () => {
+          lastPlayedAudio = audioElement;
+        });
+        audioElement.addEventListener('seeked', () => {
+          lastPlayedAudio = audioElement;
+        });
+        audioElement.addEventListener('volumechange', () => {
+          lastPlayedAudio = audioElement;
+        });
+        audioElement.addEventListener('ended', () => {
+          lastPlayedAudio = audioElement;
+        });
 
         const info = document.createElement('div');
         info.className = 'audio-info';
@@ -211,6 +232,41 @@
 
   // Fetch audios on page load
   window.onload = fetchAudios;
+
+  // Keyboard Shortcuts Implementation
+  document.addEventListener('keydown', function(event) {
+    // Check if there is a last interacted audio element
+    if (!lastPlayedAudio) return;
+
+    const key = event.key;
+
+    // Define actions for specific keys
+    switch(key) {
+      case 'ArrowLeft':
+        // Rewind 10 seconds
+        event.preventDefault(); // Prevent default browser behavior
+        lastPlayedAudio.currentTime = Math.max(0, lastPlayedAudio.currentTime - 10);
+        break;
+      case 'ArrowRight':
+        // Fast forward 10 seconds
+        event.preventDefault(); // Prevent default browser behavior
+        lastPlayedAudio.currentTime = Math.min(lastPlayedAudio.duration, lastPlayedAudio.currentTime + 10);
+        break;
+      case ' ':
+      case 'Spacebar': // For older browsers
+        // Play/Pause toggle
+        event.preventDefault(); // Prevent default browser behavior (like scrolling)
+        if (lastPlayedAudio.paused) {
+          lastPlayedAudio.play();
+        } else {
+          lastPlayedAudio.pause();
+        }
+        break;
+      default:
+        // Do nothing for other keys
+        break;
+    }
+  });
 </script>
 
 </body>
