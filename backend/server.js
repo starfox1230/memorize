@@ -41,27 +41,28 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Endpoint to generate audio
+// Endpoint to generate audio with title
 app.post('/generate-audio', async (req, res) => {
   try {
-    const { text, voice } = req.body;
+    const { title, text, voice } = req.body; // Accept 'title' along with 'text' and 'voice'
 
-    console.log('Received /generate-audio request:', { text, voice });
+    console.log('Received /generate-audio request:', { title, text, voice });
 
-    if (!text) {
-      console.warn('No text provided in the request.');
-      return res.status(400).json({ error: 'Text is required.' });
+    // Validate input
+    if (!title || !text) {
+      console.warn('Title or text not provided in the request.');
+      return res.status(400).json({ error: 'Title and text are required.' });
     }
 
-    // Call OpenAI's TTS API
+    // Call OpenAI's TTS API (do not send 'title' to OpenAI)
     console.log('Calling OpenAI TTS API...');
     const mp3 = await openai.audio.speech.create({
       model: 'tts-1',
       voice: voice || 'alloy',
-      input: text,
+      input: text, // Only send 'text' to OpenAI
     });
 
-    console.log('Received response from OpenAI:', mp3);
+    console.log('Received response from OpenAI.');
 
     // Convert response to buffer
     const buffer = Buffer.from(await mp3.arrayBuffer());
@@ -91,11 +92,12 @@ app.post('/generate-audio', async (req, res) => {
 
     // Save metadata to Firestore, including the raw filePath for deletion
     const docRef = await db.collection('audios').add({
+      title: title, // Store 'title' in Firestore
       text: text,
       url: publicUrl,
       voice: voice || 'alloy',
       timestamp: admin.firestore.FieldValue.serverTimestamp(),
-      filePath: filename, // <-- Store the exact path in Firestore
+      filePath: filename, // Store the exact path in Firestore
     });
     console.log('Audio metadata saved to Firestore with ID:', docRef.id);
 
@@ -147,7 +149,6 @@ app.delete('/delete-audio', async (req, res) => {
     }
 
     const audioData = doc.data();
-    // We now store the exact path in Firestore, so simply delete using audioData.filePath
     const filePath = audioData.filePath;
     console.log(`Deleting file: ${filePath} from Firebase Storage.`);
 
