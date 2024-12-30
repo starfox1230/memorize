@@ -44,14 +44,13 @@ const openai = new OpenAI({
 // Endpoint to generate audio
 app.post('/generate-audio', async (req, res) => {
   try {
-    const { title, text, voice } = req.body; // <-- Accept 'title'
+    const { text, voice } = req.body;
 
-    console.log('Received /generate-audio request:', { title, text, voice });
+    console.log('Received /generate-audio request:', { text, voice });
 
-    // Validate input
-    if (!title || !text) { // <-- Validate 'title' and 'text'
-      console.warn('Title or text not provided in the request.');
-      return res.status(400).json({ error: 'Title and text are required.' });
+    if (!text) {
+      console.warn('No text provided in the request.');
+      return res.status(400).json({ error: 'Text is required.' });
     }
 
     // Call OpenAI's TTS API
@@ -92,12 +91,11 @@ app.post('/generate-audio', async (req, res) => {
 
     // Save metadata to Firestore, including the raw filePath for deletion
     const docRef = await db.collection('audios').add({
-      title: title, // <-- Store 'title'
       text: text,
       url: publicUrl,
       voice: voice || 'alloy',
       timestamp: admin.firestore.FieldValue.serverTimestamp(),
-      filePath: filename, // Store the exact path in Firestore
+      filePath: filename, // <-- Store the exact path in Firestore
     });
     console.log('Audio metadata saved to Firestore with ID:', docRef.id);
 
@@ -110,7 +108,68 @@ app.post('/generate-audio', async (req, res) => {
   }
 });
 
-// ... Rest of the server.js remains unchanged
+// Endpoint to fetch audio list
+app.get('/audios', async (req, res) => {
+  try {
+    console.log('Received /audios request.');
+    const audiosSnapshot = await db.collection('audios').orderBy('timestamp', 'desc').get();
+    const audios = [];
+    audiosSnapshot.forEach((doc) => {
+      audios.push({ id: doc.id, ...doc.data() });
+    });
+    console.log('Fetched audios from Firestore:', audios.length);
+    res.status(200).json(audios);
+  } catch (error) {
+    console.error('Error fetching audios:', error);
+    res.status(500).json({ error: 'Failed to fetch audios.' });
+  }
+});
+
+// Endpoint to delete audio
+app.delete('/delete-audio', async (req, res) => {
+  try {
+    const { id } = req.body;
+
+    console.log('Received /delete-audio request for ID:', id);
+
+    if (!id) {
+      console.warn('No ID provided in the request.');
+      return res.status(400).json({ error: 'Audio ID is required.' });
+    }
+
+    // Fetch the document from Firestore
+    const docRef = db.collection('audios').doc(id);
+    const doc = await docRef.get();
+
+    if (!doc.exists) {
+      console.warn(`No audio found with ID: ${id}`);
+      return res.status(404).json({ error: 'Audio not found.' });
+    }
+
+    const audioData = doc.data();
+    // We now store the exact path in Firestore, so simply delete using audioData.filePath
+    const filePath = audioData.filePath;
+    console.log(`Deleting file: ${filePath} from Firebase Storage.`);
+
+    // Delete the file from Firebase Storage
+    await bucket.file(filePath).delete();
+    console.log(`File ${filePath} deleted from Firebase Storage.`);
+
+    // Delete the document from Firestore
+    await docRef.delete();
+    console.log(`Document with ID ${id} deleted from Firestore.`);
+
+    res.status(200).json({ message: 'Audio deleted successfully.' });
+  } catch (error) {
+    console.error('Error deleting audio:', error);
+    res.status(500).json({ error: 'Failed to delete audio.' });
+  }
+});
+
+// Root endpoint
+app.get('/', (req, res) => {
+  res.send('Memorize API is running.');
+});
 
 // Start the server
 app.listen(PORT, () => {
