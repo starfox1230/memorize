@@ -1,3 +1,5 @@
+<!-- index.html -->
+
 <!DOCTYPE html> 
 <html lang="en">
 <head>
@@ -5,62 +7,13 @@
   <title>Memorize - Night Mode</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    /* CSS Variables for Night Mode */
-    :root {
-      --background-color: #121212;
-      --container-bg: #1e1e1e;
-      --text-color: #e0e0e0;
-      --secondary-text-color: #b0b0b0;
-      --button-bg: #3a3a3a;
-      --button-hover-bg: #505050;
-      --button-color: #e0e0e0;
-      --delete-button-bg: #ff4d4d;
-      --delete-button-hover-bg: #ff6666;
-      --border-color: #333333;
-      --input-bg: #2c2c2c;
-      --input-border: #444444;
-      --select-bg: #2c2c2c;
-      --select-border: #444444;
-      --shadow-color: rgba(0, 0, 0, 0.5);
-    }
+    /* Existing CSS */
 
-    /* Basic Reset and Global Styles */
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      margin: 20px;
-      background-color: var(--background-color);
-      color: var(--text-color);
-      transition: background-color 0.3s, color 0.3s;
-    }
-
-    .container {
-      max-width: 700px;
-      margin: auto;
-      background: var(--container-bg);
-      padding: 30px;
-      border-radius: 10px;
-      box-shadow: 0 4px 20px var(--shadow-color);
-      transition: background-color 0.3s, box-shadow 0.3s;
-    }
-
-    h1, h2 {
-      text-align: center;
-      margin-bottom: 20px;
-      color: var(--text-color);
-    }
-
-    textarea {
+    /* Add styles for the title input */
+    .title-input {
       width: 100%;
-      height: 120px;
+      padding: 12px 15px;
       margin-bottom: 15px;
-      padding: 15px;
-      resize: vertical;
       border: 1px solid var(--input-border);
       border-radius: 6px;
       background-color: var(--input-bg);
@@ -69,114 +22,18 @@
       transition: background-color 0.3s, color 0.3s, border 0.3s;
     }
 
-    textarea::placeholder {
+    .title-input::placeholder {
       color: var(--secondary-text-color);
-    }
-
-    select, button {
-      padding: 12px 20px;
-      margin-right: 10px;
-      border: 1px solid var(--select-border);
-      border-radius: 6px;
-      cursor: pointer;
-      background-color: var(--select-bg);
-      color: var(--text-color);
-      font-size: 16px;
-      transition: background-color 0.3s, border 0.3s, color 0.3s;
-    }
-
-    select {
-      appearance: none;
-      background-image: url('data:image/svg+xml;charset=US-ASCII,<svg xmlns="http://www.w3.org/2000/svg" width="10" height="7"><path fill="%23e0e0e0" d="M0 0l5 5 5-5z"/></svg>');
-      background-repeat: no-repeat;
-      background-position: right 10px center;
-      background-size: 10px 7px;
-    }
-
-    button {
-      background-color: var(--button-bg);
-      color: var(--button-color);
-      border: none;
-      transition: background-color 0.3s, color 0.3s;
-    }
-
-    button:hover {
-      background-color: var(--button-hover-bg);
-    }
-
-    button:disabled {
-      background-color: #555555;
-      cursor: not-allowed;
-    }
-
-    .delete-btn {
-      background-color: var(--delete-button-bg);
-      color: #fff;
-      border: none;
-      transition: background-color 0.3s;
-    }
-
-    .delete-btn:hover {
-      background-color: var(--delete-button-hover-bg);
-    }
-
-    .audio-list {
-      margin-top: 30px;
-    }
-
-    .audio-item {
-      display: flex;
-      align-items: center;
-      margin-bottom: 15px;
-      padding: 15px;
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      background-color: var(--input-bg);
-      box-shadow: 0 2px 10px var(--shadow-color);
-      transition: background-color 0.3s, box-shadow 0.3s, border 0.3s;
-    }
-
-    .audio-item audio {
-      margin-right: 15px;
-      width: 150px;
-      height: 30px;
-      background-color: var(--background-color);
-      border-radius: 4px;
-      outline: none;
-    }
-
-    .audio-info {
-      flex-grow: 1;
-      font-size: 16px;
-      color: var(--text-color);
-    }
-
-    /* Responsive Design */
-    @media (max-width: 600px) {
-      .audio-item {
-        flex-direction: column;
-        align-items: flex-start;
-      }
-
-      .audio-item audio {
-        width: 100%;
-        margin-bottom: 10px;
-      }
-
-      select, button {
-        width: 100%;
-        margin-bottom: 10px;
-      }
-
-      button {
-        margin-right: 0;
-      }
     }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>Memorize</h1>
+
+    <!-- New Title Input Field -->
+    <input type="text" id="title-input" class="title-input" placeholder="Enter title here..." />
+
     <textarea id="text-input" placeholder="Enter text here..."></textarea>
     <br>
     <select id="voice-select">
@@ -196,182 +53,224 @@
     </div>
   </div>
 
-<script>
-  const generateBtn = document.getElementById('generate-btn');
-  const textInput = document.getElementById('text-input');
-  const voiceSelect = document.getElementById('voice-select');
-  const audioList = document.getElementById('audio-list');
+  <script>
+    const generateBtn = document.getElementById('generate-btn');
+    const textInput = document.getElementById('text-input');
+    const titleInput = document.getElementById('title-input'); // <-- New title input
+    const voiceSelect = document.getElementById('voice-select');
+    const audioList = document.getElementById('audio-list');
 
-  // Replace with your deployed backend URL on Render
-  const BACKEND_URL = 'https://memorize-backend-lf3t.onrender.com'; 
+    // Replace with your deployed backend URL on Render
+    const BACKEND_URL = 'https://memorize-backend-lf3t.onrender.com'; 
 
-  // Variable to keep track of the last interacted audio element
-  let lastPlayedAudio = null;
+    // Variable to keep track of the last interacted audio element
+    let lastPlayedAudio = null;
 
-  generateBtn.addEventListener('click', async () => {
-    const text = textInput.value.trim();
-    const voice = voiceSelect.value;
+    generateBtn.addEventListener('click', async () => {
+      const title = titleInput.value.trim(); // <-- Get title
+      const text = textInput.value.trim();
+      const voice = voiceSelect.value;
 
-    console.log('Generate Audio Button Clicked');
-    console.log('Text:', text);
-    console.log('Voice:', voice);
+      console.log('Generate Audio Button Clicked');
+      console.log('Title:', title);
+      console.log('Text:', text);
+      console.log('Voice:', voice);
 
-    if (!text) {
-      alert('Please enter some text.');
-      return;
-    }
-
-    try {
-      generateBtn.disabled = true;
-      generateBtn.innerText = 'Generating...';
-      console.log('Sending POST request to /generate-audio');
-
-      const response = await fetch(`${BACKEND_URL}/generate-audio`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, voice })
-      });
-
-      console.log('Received response:', response);
-
-      const data = await response.json();
-      console.log('Response data:', data);
-
-      if (response.ok) {
-        alert('Audio generated successfully!');
-        textInput.value = '';
-        fetchAudios();
-      } else {
-        alert(`Error: ${data.error}`);
+      if (!title || !text) { // <-- Validate title and text
+        alert('Please enter both a title and some text.');
+        return;
       }
-    } catch (error) {
-      console.error('Error generating audio:', error);
-      alert('Failed to generate audio.');
-    } finally {
-      generateBtn.disabled = false;
-      generateBtn.innerText = 'Generate Audio';
-    }
-  });
 
-  async function fetchAudios() {
-    try {
-      const res = await fetch(`${BACKEND_URL}/audios`);
-      const audios = await res.json();
+      try {
+        generateBtn.disabled = true;
+        generateBtn.innerText = 'Generating...';
+        console.log('Sending POST request to /generate-audio');
 
-      audioList.innerHTML = '<h2>Generated Audios</h2>';
-      audios.forEach(audio => {
-        const audioItem = document.createElement('div');
-        audioItem.className = 'audio-item';
-
-        const audioElement = document.createElement('audio');
-        audioElement.controls = true;
-        audioElement.src = audio.url;
-        audioElement.loop = true; // Enable looping
-
-        // Event listeners to update lastPlayedAudio when interacted with
-        audioElement.addEventListener('play', () => {
-          lastPlayedAudio = audioElement;
-        });
-        audioElement.addEventListener('pause', () => {
-          lastPlayedAudio = audioElement;
-        });
-        audioElement.addEventListener('seeked', () => {
-          lastPlayedAudio = audioElement;
-        });
-        audioElement.addEventListener('volumechange', () => {
-          lastPlayedAudio = audioElement;
-        });
-        audioElement.addEventListener('ended', () => {
-          lastPlayedAudio = audioElement;
+        const response = await fetch(`${BACKEND_URL}/generate-audio`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, text, voice }) // <-- Send title
         });
 
-        const info = document.createElement('div');
-        info.className = 'audio-info';
-        const timestamp = audio.timestamp 
-          ? new Date(audio.timestamp.seconds * 1000).toLocaleString() 
-          : 'N/A';
-        info.textContent = `${audio.text} (${timestamp})`;
+        console.log('Received response:', response);
 
-        const deleteBtn = document.createElement('button');
-        deleteBtn.className = 'delete-btn';
-        deleteBtn.textContent = 'Delete';
-        deleteBtn.addEventListener('click', () => deleteAudio(audio.id));
+        const data = await response.json();
+        console.log('Response data:', data);
 
-        audioItem.appendChild(audioElement);
-        audioItem.appendChild(info);
-        audioItem.appendChild(deleteBtn);
-        audioList.appendChild(audioItem);
-      });
-    } catch (error) {
-      console.error('Error fetching audios:', error);
-    }
-  }
-
-  async function deleteAudio(id) {
-    if (!confirm('Are you sure you want to delete this audio?')) {
-      return;
-    }
-
-    try {
-      const response = await fetch(`${BACKEND_URL}/delete-audio`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id })
-      });
-
-      const data = await response.json();
-      console.log('Delete response:', data);
-
-      if (response.ok) {
-        alert('Audio deleted successfully!');
-        fetchAudios();
-      } else {
-        alert(`Error: ${data.error}`);
-      }
-    } catch (error) {
-      console.error('Error deleting audio:', error);
-      alert('Failed to delete audio.');
-    }
-  }
-
-  // Fetch audios on page load
-  window.onload = fetchAudios;
-
-  // Keyboard Shortcuts Implementation
-  document.addEventListener('keydown', function(event) {
-    // Check if there is a last interacted audio element
-    if (!lastPlayedAudio) return;
-
-    const key = event.key;
-
-    // Define actions for specific keys
-    switch(key) {
-      case 'ArrowLeft':
-        // Rewind 10 seconds
-        event.preventDefault(); // Prevent default browser behavior
-        lastPlayedAudio.currentTime = Math.max(0, lastPlayedAudio.currentTime - 10);
-        break;
-      case 'ArrowRight':
-        // Fast forward 10 seconds
-        event.preventDefault(); // Prevent default browser behavior
-        lastPlayedAudio.currentTime = Math.min(lastPlayedAudio.duration, lastPlayedAudio.currentTime + 10);
-        break;
-      case ' ':
-      case 'Spacebar': // For older browsers
-        // Play/Pause toggle
-        event.preventDefault(); // Prevent default browser behavior (like scrolling)
-        if (lastPlayedAudio.paused) {
-          lastPlayedAudio.play();
+        if (response.ok) {
+          alert('Audio generated successfully!');
+          titleInput.value = ''; // <-- Clear title input
+          textInput.value = '';
+          fetchAudios();
         } else {
-          lastPlayedAudio.pause();
+          alert(`Error: ${data.error}`);
         }
-        break;
-      default:
-        // Do nothing for other keys
-        break;
+      } catch (error) {
+        console.error('Error generating audio:', error);
+        alert('Failed to generate audio.');
+      } finally {
+        generateBtn.disabled = false;
+        generateBtn.innerText = 'Generate Audio';
+      }
+    });
+
+    async function fetchAudios() {
+      try {
+        const res = await fetch(`${BACKEND_URL}/audios`);
+        const audios = await res.json();
+
+        audioList.innerHTML = '<h2>Generated Audios</h2>';
+        audios.forEach(audio => {
+          const audioItem = document.createElement('div');
+          audioItem.className = 'audio-item';
+
+          // Create Title Button
+          const titleButton = document.createElement('button');
+          titleButton.className = 'title-button';
+          titleButton.textContent = audio.title;
+          titleButton.style.marginRight = '10px';
+          titleButton.style.padding = '10px 15px';
+          titleButton.style.backgroundColor = 'var(--button-bg)';
+          titleButton.style.color = 'var(--button-color)';
+          titleButton.style.border = 'none';
+          titleButton.style.borderRadius = '6px';
+          titleButton.style.cursor = 'pointer';
+          titleButton.style.fontSize = '16px';
+          titleButton.style.transition = 'background-color 0.3s';
+          titleButton.addEventListener('mouseover', () => {
+            titleButton.style.backgroundColor = 'var(--button-hover-bg)';
+          });
+          titleButton.addEventListener('mouseout', () => {
+            titleButton.style.backgroundColor = 'var(--button-bg)';
+          });
+
+          // Create a container for details (hidden by default)
+          const detailsContainer = document.createElement('div');
+          detailsContainer.style.display = 'none';
+          detailsContainer.style.marginTop = '10px';
+
+          const audioElement = document.createElement('audio');
+          audioElement.controls = true;
+          audioElement.src = audio.url;
+          audioElement.loop = true; // Enable looping
+
+          // Event listeners to update lastPlayedAudio when interacted with
+          audioElement.addEventListener('play', () => {
+            lastPlayedAudio = audioElement;
+          });
+          audioElement.addEventListener('pause', () => {
+            lastPlayedAudio = audioElement;
+          });
+          audioElement.addEventListener('seeked', () => {
+            lastPlayedAudio = audioElement;
+          });
+          audioElement.addEventListener('volumechange', () => {
+            lastPlayedAudio = audioElement;
+          });
+          audioElement.addEventListener('ended', () => {
+            lastPlayedAudio = audioElement;
+          });
+
+          const info = document.createElement('div');
+          info.className = 'audio-info';
+          const timestamp = audio.timestamp 
+            ? new Date(audio.timestamp.seconds * 1000).toLocaleString() 
+            : 'N/A';
+          info.textContent = `${audio.text} (${timestamp})`;
+
+          const deleteBtn = document.createElement('button');
+          deleteBtn.className = 'delete-btn';
+          deleteBtn.textContent = 'Delete';
+          deleteBtn.addEventListener('click', () => deleteAudio(audio.id));
+
+          // Append audio and info to details container
+          detailsContainer.appendChild(audioElement);
+          detailsContainer.appendChild(info);
+          detailsContainer.appendChild(deleteBtn);
+
+          // Toggle functionality
+          titleButton.addEventListener('click', () => {
+            if (detailsContainer.style.display === 'none') {
+              detailsContainer.style.display = 'block';
+            } else {
+              detailsContainer.style.display = 'none';
+            }
+          });
+
+          audioItem.appendChild(titleButton);
+          audioItem.appendChild(detailsContainer);
+          audioList.appendChild(audioItem);
+        });
+      } catch (error) {
+        console.error('Error fetching audios:', error);
+      }
     }
-  });
-</script>
+
+    async function deleteAudio(id) {
+      if (!confirm('Are you sure you want to delete this audio?')) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`${BACKEND_URL}/delete-audio`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id })
+        });
+
+        const data = await response.json();
+        console.log('Delete response:', data);
+
+        if (response.ok) {
+          alert('Audio deleted successfully!');
+          fetchAudios();
+        } else {
+          alert(`Error: ${data.error}`);
+        }
+      } catch (error) {
+        console.error('Error deleting audio:', error);
+        alert('Failed to delete audio.');
+      }
+    }
+
+    // Fetch audios on page load
+    window.onload = fetchAudios;
+
+    // Keyboard Shortcuts Implementation
+    document.addEventListener('keydown', function(event) {
+      // Check if there is a last interacted audio element
+      if (!lastPlayedAudio) return;
+
+      const key = event.key;
+
+      // Define actions for specific keys
+      switch(key) {
+        case 'ArrowLeft':
+          // Rewind 10 seconds
+          event.preventDefault(); // Prevent default browser behavior
+          lastPlayedAudio.currentTime = Math.max(0, lastPlayedAudio.currentTime - 10);
+          break;
+        case 'ArrowRight':
+          // Fast forward 10 seconds
+          event.preventDefault(); // Prevent default browser behavior
+          lastPlayedAudio.currentTime = Math.min(lastPlayedAudio.duration, lastPlayedAudio.currentTime + 10);
+          break;
+        case ' ':
+        case 'Spacebar': // For older browsers
+          // Play/Pause toggle
+          event.preventDefault(); // Prevent default browser behavior (like scrolling)
+          if (lastPlayedAudio.paused) {
+            lastPlayedAudio.play();
+          } else {
+            lastPlayedAudio.pause();
+          }
+          break;
+        default:
+          // Do nothing for other keys
+          break;
+      }
+    });
+  </script>
 
 </body>
 </html>
