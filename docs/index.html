@@ -24,6 +24,8 @@
       --shadow-color: rgba(0, 0, 0, 0.5);
       --control-button-bg: #4a4a4a; /* New variable for control buttons */
       --control-button-hover-bg: #616161;
+      --play-icon: '▶'; /* Unicode play symbol */
+      --pause-icon: '⏸'; /* Unicode pause symbol */
     }
 
     /* Basic Reset and Global Styles */
@@ -39,6 +41,8 @@
       background-color: var(--background-color);
       color: var(--text-color);
       transition: background-color 0.3s, color 0.3s;
+      -webkit-text-size-adjust: 100%; /* Prevent font scaling in landscape */
+      -ms-text-size-adjust: 100%;
     }
 
     .container {
@@ -116,6 +120,10 @@
       color: var(--button-color);
       border: none;
       transition: background-color 0.3s, color 0.3s;
+      user-select: none; /* Prevent text selection on double-tap */
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
     }
 
     button:hover {
@@ -199,17 +207,26 @@
       display: flex;
       gap: 10px;
       margin-bottom: 10px;
+      /* Ensure buttons are horizontally aligned */
+      flex-direction: row;
+      justify-content: center;
+      align-items: center;
     }
 
     .control-btn {
-      padding: 6px 12px;
+      padding: 10px 16px;
       background-color: var(--control-button-bg);
       color: var(--button-color);
       border: none;
       border-radius: 4px;
       cursor: pointer;
-      font-size: 14px;
+      font-size: 18px;
       transition: background-color 0.3s;
+      user-select: none; /* Prevent text selection on double-tap */
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      touch-action: manipulation; /* Prevent double-tap zoom */
     }
 
     .control-btn:hover {
@@ -239,12 +256,14 @@
       }
 
       .audio-controls {
-        flex-direction: column;
+        flex-direction: row;
         width: 100%;
+        justify-content: space-around;
       }
 
       .control-btn {
-        width: 100%;
+        flex: 1;
+        margin: 0 5px;
       }
     }
   </style>
@@ -364,9 +383,11 @@
         // Event listeners to update lastPlayedAudio when interacted with
         audioElement.addEventListener('play', () => {
           lastPlayedAudio = audioElement;
+          updatePlayPauseButton();
         });
         audioElement.addEventListener('pause', () => {
           lastPlayedAudio = audioElement;
+          updatePlayPauseButton();
         });
         audioElement.addEventListener('seeked', () => {
           lastPlayedAudio = audioElement;
@@ -376,25 +397,39 @@
         });
         audioElement.addEventListener('ended', () => {
           lastPlayedAudio = audioElement;
+          updatePlayPauseButton();
         });
 
         // Create Control Buttons Container
         const controlsDiv = document.createElement('div');
         controlsDiv.className = 'audio-controls';
 
-        // Back 10s Button
+        // Back Button
         const backBtn = document.createElement('button');
         backBtn.className = 'control-btn';
-        backBtn.textContent = '⏪ 10s';
+        backBtn.textContent = '⏪';
         backBtn.title = 'Rewind 10 seconds';
         backBtn.addEventListener('click', () => {
           audioElement.currentTime = Math.max(0, audioElement.currentTime - 10);
         });
 
-        // Forward 10s Button
+        // Play/Pause Button
+        const playPauseBtn = document.createElement('button');
+        playPauseBtn.className = 'control-btn';
+        playPauseBtn.textContent = '▶'; // Initial icon
+        playPauseBtn.title = 'Play/Pause';
+        playPauseBtn.addEventListener('click', () => {
+          if (audioElement.paused) {
+            audioElement.play();
+          } else {
+            audioElement.pause();
+          }
+        });
+
+        // Forward Button
         const forwardBtn = document.createElement('button');
         forwardBtn.className = 'control-btn';
-        forwardBtn.textContent = '10s ⏩';
+        forwardBtn.textContent = '⏩';
         forwardBtn.title = 'Forward 10 seconds';
         forwardBtn.addEventListener('click', () => {
           audioElement.currentTime = Math.min(audioElement.duration, audioElement.currentTime + 10);
@@ -402,7 +437,25 @@
 
         // Append control buttons to controlsDiv
         controlsDiv.appendChild(backBtn);
+        controlsDiv.appendChild(playPauseBtn);
         controlsDiv.appendChild(forwardBtn);
+
+        // Function to update Play/Pause button icon
+        function updatePlayPauseButton() {
+          if (audioElement.paused) {
+            playPauseBtn.textContent = '▶';
+          } else {
+            playPauseBtn.textContent = '⏸';
+          }
+        }
+
+        // Initialize Play/Pause button based on initial state
+        updatePlayPauseButton();
+
+        // Update Play/Pause button when audio plays or pauses
+        audioElement.addEventListener('play', updatePlayPauseButton);
+        audioElement.addEventListener('pause', updatePlayPauseButton);
+        audioElement.addEventListener('ended', updatePlayPauseButton);
 
         const info = document.createElement('div');
         info.className = 'audio-info';
