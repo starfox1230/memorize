@@ -251,12 +251,17 @@
 
     /* Memorization Tools Styles */
     .memorization-container {
+      display: none; /* Hidden by default */
       margin-top: 15px;
       padding: 15px;
       border: 1px solid var(--memorization-border);
       border-radius: 6px;
       background-color: var(--memorization-bg);
       transition: background-color 0.3s, border 0.3s;
+    }
+
+    .memorization-container.active {
+      display: block; /* Show when active */
     }
 
     .memorization-controls {
