@@ -117,12 +117,7 @@ app.get('/audios', async (req, res) => {
     const audiosSnapshot = await db.collection('audios').orderBy('timestamp', 'desc').get();
     const audios = [];
     audiosSnapshot.forEach((doc) => {
-      const data = doc.data();
-      audios.push({
-        id: doc.id,
-        ...data,
-        timestamp: data.timestamp ? data.timestamp.toDate().toISOString() : null, // Convert to ISO string
-      });
+      audios.push({ id: doc.id, ...doc.data() });
     });
     console.log('Fetched audios from Firestore:', audios.length);
     res.status(200).json(audios);
