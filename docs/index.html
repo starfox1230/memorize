@@ -26,6 +26,14 @@
       --control-button-hover-bg: #616161;
       --play-icon: '▶'; /* Unicode play symbol */
       --pause-icon: '⏸'; /* Unicode pause symbol */
+      /* New variables for memorization tools */
+      --memorization-bg: #2c2c2c;
+      --memorization-border: #444444;
+      --memorization-text-color: #e0e0e0;
+      --memorization-hidden-color: transparent;
+      --memorization-underline-color: #ccc;
+      --memorization-button-bg: #3a3a3a;
+      --memorization-button-hover-bg: #505050;
     }
 
     /* Basic Reset and Global Styles */
@@ -239,6 +247,68 @@
       margin-bottom: 10px;
     }
 
+    /* Memorization Tools Styles */
+    .memorization-section {
+      width: 100%;
+      margin-top: 15px;
+      padding: 15px;
+      border: 1px solid var(--memorization-border);
+      border-radius: 6px;
+      background-color: var(--memorization-bg);
+      color: var(--memorization-text-color);
+      box-shadow: 0 2px 10px var(--shadow-color);
+      transition: background-color 0.3s, box-shadow 0.3s, border 0.3s;
+    }
+
+    .memorization-controls {
+      margin-bottom: 15px;
+    }
+
+    .memorization-controls label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+
+    .memorization-controls input[type="range"] {
+      width: 100%;
+    }
+
+    .memorization-output {
+      font-size: 16px;
+      line-height: 1.5;
+      word-wrap: break-word;
+    }
+
+    .hidden-word .rest {
+      color: var(--memorization-hidden-color);
+      text-decoration: underline;
+      text-decoration-color: var(--memorization-underline-color);
+    }
+
+    .hidden-word.no-first-letter {
+      color: var(--memorization-hidden-color);
+      text-decoration: underline;
+      text-decoration-color: var(--memorization-underline-color);
+    }
+
+    /* Memorization Button */
+    .memorization-btn {
+      padding: 8px 12px;
+      background-color: var(--memorization-button-bg);
+      color: var(--button-color);
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background-color 0.3s;
+      margin-bottom: 10px;
+    }
+
+    .memorization-btn:hover {
+      background-color: var(--memorization-button-hover-bg);
+    }
+
     /* Responsive Design */
     @media (max-width: 600px) {
       .audio-item {
@@ -264,6 +334,10 @@
       .control-btn {
         flex: 1;
         margin: 0 5px;
+      }
+
+      .memorization-section {
+        padding: 10px;
       }
     }
   </style>
@@ -469,11 +543,159 @@
         deleteBtn.textContent = 'Delete';
         deleteBtn.addEventListener('click', () => deleteAudio(audio.id));
 
-        // Append audio, controls, and info to details container
+        // Create Memorization Button
+        const memorizationBtn = document.createElement('button');
+        memorizationBtn.className = 'memorization-btn';
+        memorizationBtn.textContent = 'Memorization Tools';
+
+        // Create Memorization Section
+        const memorizationSection = document.createElement('div');
+        memorizationSection.className = 'memorization-section';
+        memorizationSection.style.display = 'none'; // Hidden by default
+
+        // Memorization Controls
+        const memorizationControls = document.createElement('div');
+        memorizationControls.className = 'memorization-controls';
+
+        // Visibility Slider
+        const visibilityLabel = document.createElement('label');
+        visibilityLabel.textContent = 'Visibility:';
+        const visibilitySlider = document.createElement('input');
+        visibilitySlider.type = 'range';
+        visibilitySlider.min = '0';
+        visibilitySlider.max = '100';
+        visibilitySlider.value = '100';
+        visibilitySlider.className = 'visibility-slider';
+        const visibilityPercent = document.createElement('span');
+        visibilityPercent.textContent = '100%';
+
+        // First Letter Toggle
+        const firstLetterLabel = document.createElement('label');
+        const firstLetterToggle = document.createElement('input');
+        firstLetterToggle.type = 'checkbox';
+        firstLetterToggle.className = 'first-letter-toggle';
+        firstLetterLabel.appendChild(firstLetterToggle);
+        firstLetterLabel.appendChild(document.createTextNode(' Show First Letter Only'));
+
+        // Append controls to memorizationControls
+        memorizationControls.appendChild(visibilityLabel);
+        memorizationControls.appendChild(visibilitySlider);
+        memorizationControls.appendChild(visibilityPercent);
+        memorizationControls.appendChild(document.createElement('br'));
+        memorizationControls.appendChild(document.createElement('br'));
+        memorizationControls.appendChild(firstLetterLabel);
+
+        // Memorization Output
+        const memorizationOutput = document.createElement('div');
+        memorizationOutput.className = 'memorization-output';
+        memorizationOutput.textContent = audio.text; // Initial text
+
+        // Append controls and output to memorizationSection
+        memorizationSection.appendChild(memorizationControls);
+        memorizationSection.appendChild(memorizationOutput);
+
+        // Toggle Memorization Section
+        memorizationBtn.addEventListener('click', () => {
+          if (memorizationSection.style.display === 'none') {
+            memorizationSection.style.display = 'block';
+            updateMemorizationOutput();
+          } else {
+            memorizationSection.style.display = 'none';
+          }
+        });
+
+        // Function to shuffle an array using Fisher-Yates algorithm
+        function shuffleArray(array) {
+          for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+          }
+          return array;
+        }
+
+        // Generate randomized indices once
+        let words = [];
+        let randomIndices = [];
+        function generateRandomIndices() {
+          randomIndices = Array.from({ length: words.length }, (_, index) => index);
+          shuffleArray(randomIndices);
+        }
+
+        // Function to update memorization output
+        function updateMemorizationOutput() {
+          const text = audio.text.trim();
+          const visibility = parseInt(visibilitySlider.value);
+          const firstLetterOnly = firstLetterToggle.checked;
+
+          if (!text) {
+            memorizationOutput.innerHTML = '';
+            return;
+          }
+
+          // Split text into words
+          if (words.join(' ') !== text) {
+            words = text.split(/\s+/);
+            generateRandomIndices();
+          }
+
+          const totalWords = words.length;
+          const visibleCount = Math.floor((visibility / 100) * totalWords);
+          const hiddenCount = totalWords - visibleCount;
+
+          // Determine which indices are hidden
+          const hiddenIndices = randomIndices.slice(0, hiddenCount);
+
+          // Build the output HTML
+          const modifiedWords = words.map((word, index) => {
+            if (!hiddenIndices.includes(index)) {
+              // Word is visible
+              return `<span>${word}</span>`;
+            } else {
+              // Word is hidden
+              if (firstLetterOnly && word.length > 1) {
+                const firstLetter = word.charAt(0);
+                const restLength = word.length - 1;
+                const underlines = '_'.repeat(restLength);
+                return `<span class="hidden-word" data-word="${word}">
+                          <span>${firstLetter}</span><span class="rest">${underlines}</span>
+                        </span>`;
+              } else if (firstLetterOnly && word.length === 1) {
+                // If the word is a single character, just display it
+                return `<span>${word}</span>`;
+              } else {
+                // Entire word is hidden
+                return `<span class="hidden-word no-first-letter" data-word="${word}">${'_'.repeat(word.length)}</span>`;
+              }
+            }
+          });
+
+          memorizationOutput.innerHTML = modifiedWords.join(' ');
+          visibilityPercent.textContent = `${visibility}%`;
+        }
+
+        // Event listeners to update output when controls change
+        visibilitySlider.addEventListener('input', updateMemorizationOutput);
+        firstLetterToggle.addEventListener('change', updateMemorizationOutput);
+
+        // Event listener to reveal clicked words
+        memorizationOutput.addEventListener('click', (e) => {
+          // Determine if a hidden word was clicked
+          let target = e.target;
+          if (target.classList.contains('hidden-word') || target.closest('.hidden-word')) {
+            const hiddenWordSpan = target.classList.contains('hidden-word') ? target : target.closest('.hidden-word');
+            const originalWord = hiddenWordSpan.getAttribute('data-word');
+            hiddenWordSpan.innerHTML = originalWord;
+            hiddenWordSpan.classList.remove('hidden-word', 'no-first-letter');
+          }
+        });
+
+        // Append elements to detailsContainer
         detailsContainer.appendChild(audioElement);
         detailsContainer.appendChild(controlsDiv); // Add controls here
         detailsContainer.appendChild(info);
         detailsContainer.appendChild(deleteBtn);
+        detailsContainer.appendChild(memorizationBtn);
+        detailsContainer.appendChild(memorizationSection);
 
         // Toggle functionality
         titleButton.addEventListener('click', () => {
