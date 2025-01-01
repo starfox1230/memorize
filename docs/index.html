@@ -30,10 +30,12 @@
       --memorization-bg: #2c2c2c;
       --memorization-border: #444444;
       --memorization-text-color: #e0e0e0;
-      --memorization-hidden-color: transparent;
+      --memorization-hidden-color: #ccc; /* Visible color for underscores */
       --memorization-underline-color: #ccc;
       --memorization-button-bg: #3a3a3a;
       --memorization-button-hover-bg: #505050;
+      --memorization-slider-bg: #4a4a4a;
+      --memorization-slider-thumb: #e0e0e0;
     }
 
     /* Basic Reset and Global Styles */
@@ -248,61 +250,91 @@
     }
 
     /* Memorization Tools Styles */
-    .memorization-section {
-      width: 100%;
+    .memorization-container {
       margin-top: 15px;
       padding: 15px;
       border: 1px solid var(--memorization-border);
       border-radius: 6px;
       background-color: var(--memorization-bg);
-      color: var(--memorization-text-color);
-      box-shadow: 0 2px 10px var(--shadow-color);
-      transition: background-color 0.3s, box-shadow 0.3s, border 0.3s;
+      transition: background-color 0.3s, border 0.3s;
     }
 
     .memorization-controls {
-      margin-bottom: 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 10px;
     }
 
     .memorization-controls label {
-      display: block;
-      margin-bottom: 8px;
-      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--text-color);
     }
 
     .memorization-controls input[type="range"] {
       width: 100%;
+      -webkit-appearance: none;
+      appearance: none;
+      height: 8px;
+      border-radius: 5px;
+      background: var(--memorization-slider-bg);
+      outline: none;
+      opacity: 0.7;
+      transition: opacity 0.2s;
     }
 
-    .memorization-output {
-      font-size: 16px;
-      line-height: 1.5;
+    .memorization-controls input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--memorization-slider-thumb);
+      cursor: pointer;
+    }
+
+    .memorization-controls input[type="range"]::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--memorization-slider-thumb);
+      cursor: pointer;
+    }
+
+    .output-text {
+      margin-top: 10px;
+      line-height: 1.6;
       word-wrap: break-word;
+    }
+
+    .output-text span {
+      margin-right: 5px;
+      cursor: pointer;
     }
 
     .hidden-word .rest {
       color: var(--memorization-hidden-color);
-      text-decoration: underline;
-      text-decoration-color: var(--memorization-underline-color);
+      text-decoration: none;
     }
 
     .hidden-word.no-first-letter {
       color: var(--memorization-hidden-color);
-      text-decoration: underline;
-      text-decoration-color: var(--memorization-underline-color);
+      text-decoration: none;
     }
 
-    /* Memorization Button */
+    /* Memorization Button Styles */
     .memorization-btn {
       padding: 8px 12px;
       background-color: var(--memorization-button-bg);
       color: var(--button-color);
       border: none;
-      border-radius: 4px;
+      border-radius: 6px;
       cursor: pointer;
       font-size: 14px;
       transition: background-color 0.3s;
-      margin-bottom: 10px;
+      align-self: flex-start;
     }
 
     .memorization-btn:hover {
@@ -334,10 +366,6 @@
       .control-btn {
         flex: 1;
         margin: 0 5px;
-      }
-
-      .memorization-section {
-        padding: 10px;
       }
     }
   </style>
@@ -547,11 +575,13 @@
         const memorizationBtn = document.createElement('button');
         memorizationBtn.className = 'memorization-btn';
         memorizationBtn.textContent = 'Memorization Tools';
+        memorizationBtn.addEventListener('click', () => {
+          memorizationContainer.classList.toggle('active');
+        });
 
-        // Create Memorization Section
-        const memorizationSection = document.createElement('div');
-        memorizationSection.className = 'memorization-section';
-        memorizationSection.style.display = 'none'; // Hidden by default
+        // Create Memorization Container
+        const memorizationContainer = document.createElement('div');
+        memorizationContainer.className = 'memorization-container';
 
         // Memorization Controls
         const memorizationControls = document.createElement('div');
@@ -559,50 +589,63 @@
 
         // Visibility Slider
         const visibilityLabel = document.createElement('label');
+        visibilityLabel.htmlFor = `visibility-slider-${audio.id}`;
         visibilityLabel.textContent = 'Visibility:';
         const visibilitySlider = document.createElement('input');
         visibilitySlider.type = 'range';
+        visibilitySlider.id = `visibility-slider-${audio.id}`;
         visibilitySlider.min = '0';
         visibilitySlider.max = '100';
         visibilitySlider.value = '100';
-        visibilitySlider.className = 'visibility-slider';
         const visibilityPercent = document.createElement('span');
+        visibilityPercent.id = `visibility-percent-${audio.id}`;
         visibilityPercent.textContent = '100%';
+        visibilityLabel.appendChild(visibilitySlider);
+        visibilityLabel.appendChild(visibilityPercent);
 
         // First Letter Toggle
         const firstLetterLabel = document.createElement('label');
+        firstLetterLabel.htmlFor = `first-letter-toggle-${audio.id}`;
         const firstLetterToggle = document.createElement('input');
         firstLetterToggle.type = 'checkbox';
-        firstLetterToggle.className = 'first-letter-toggle';
+        firstLetterToggle.id = `first-letter-toggle-${audio.id}`;
         firstLetterLabel.appendChild(firstLetterToggle);
-        firstLetterLabel.appendChild(document.createTextNode(' Show First Letter Only'));
+        firstLetterLabel.appendChild(document.createTextNode('Show First Letter Only'));
 
         // Append controls to memorizationControls
         memorizationControls.appendChild(visibilityLabel);
-        memorizationControls.appendChild(visibilitySlider);
-        memorizationControls.appendChild(visibilityPercent);
-        memorizationControls.appendChild(document.createElement('br'));
-        memorizationControls.appendChild(document.createElement('br'));
         memorizationControls.appendChild(firstLetterLabel);
 
-        // Memorization Output
-        const memorizationOutput = document.createElement('div');
-        memorizationOutput.className = 'memorization-output';
-        memorizationOutput.textContent = audio.text; // Initial text
+        // Output Container
+        const output = document.createElement('div');
+        output.className = 'output-text';
+        output.id = `output-${audio.id}`;
 
-        // Append controls and output to memorizationSection
-        memorizationSection.appendChild(memorizationControls);
-        memorizationSection.appendChild(memorizationOutput);
+        // Append controls and output to memorizationContainer
+        memorizationContainer.appendChild(memorizationControls);
+        memorizationContainer.appendChild(output);
 
-        // Toggle Memorization Section
-        memorizationBtn.addEventListener('click', () => {
-          if (memorizationSection.style.display === 'none') {
-            memorizationSection.style.display = 'block';
-            updateMemorizationOutput();
-          } else {
-            memorizationSection.style.display = 'none';
-          }
+        // Append memorizationContainer to detailsContainer
+        detailsContainer.appendChild(audioElement);
+        detailsContainer.appendChild(controlsDiv); // Add controls here
+        detailsContainer.appendChild(info);
+        detailsContainer.appendChild(deleteBtn);
+        detailsContainer.appendChild(memorizationBtn);
+        detailsContainer.appendChild(memorizationContainer);
+
+        // Toggle functionality for detailsContainer
+        titleButton.addEventListener('click', () => {
+          detailsContainer.classList.toggle('active');
         });
+
+        // Append audio, controls, and info to details container
+        audioItem.appendChild(titleButton);
+        audioItem.appendChild(detailsContainer);
+        audioList.appendChild(audioItem);
+
+        // Memorization Functionality
+        const words = audio.text.split(/\s+/);
+        let randomIndices = [];
 
         // Function to shuffle an array using Fisher-Yates algorithm
         function shuffleArray(array) {
@@ -614,28 +657,20 @@
         }
 
         // Generate randomized indices once
-        let words = [];
-        let randomIndices = [];
         function generateRandomIndices() {
           randomIndices = Array.from({ length: words.length }, (_, index) => index);
           shuffleArray(randomIndices);
         }
 
-        // Function to update memorization output
+        generateRandomIndices();
+
         function updateMemorizationOutput() {
-          const text = audio.text.trim();
           const visibility = parseInt(visibilitySlider.value);
           const firstLetterOnly = firstLetterToggle.checked;
 
-          if (!text) {
-            memorizationOutput.innerHTML = '';
+          if (!words.length) {
+            output.innerHTML = '';
             return;
-          }
-
-          // Split text into words
-          if (words.join(' ') !== text) {
-            words = text.split(/\s+/);
-            generateRandomIndices();
           }
 
           const totalWords = words.length;
@@ -654,31 +689,34 @@
               // Word is hidden
               if (firstLetterOnly && word.length > 1) {
                 const firstLetter = word.charAt(0);
-                const restLength = word.length - 1;
-                const underlines = '_'.repeat(restLength);
+                const underscores = '_'.repeat(word.length - 1);
                 return `<span class="hidden-word" data-word="${word}">
-                          <span>${firstLetter}</span><span class="rest">${underlines}</span>
+                          <span>${firstLetter}</span><span class="rest">${underscores}</span>
                         </span>`;
               } else if (firstLetterOnly && word.length === 1) {
                 // If the word is a single character, just display it
                 return `<span>${word}</span>`;
               } else {
                 // Entire word is hidden
-                return `<span class="hidden-word no-first-letter" data-word="${word}">${'_'.repeat(word.length)}</span>`;
+                const underscores = '_'.repeat(word.length);
+                return `<span class="hidden-word no-first-letter" data-word="${word}">${underscores}</span>`;
               }
             }
           });
 
-          memorizationOutput.innerHTML = modifiedWords.join(' ');
+          output.innerHTML = modifiedWords.join(' ');
           visibilityPercent.textContent = `${visibility}%`;
         }
 
-        // Event listeners to update output when controls change
+        // Initial update
+        updateMemorizationOutput();
+
+        // Event listeners for memorization controls
         visibilitySlider.addEventListener('input', updateMemorizationOutput);
         firstLetterToggle.addEventListener('change', updateMemorizationOutput);
 
         // Event listener to reveal clicked words
-        memorizationOutput.addEventListener('click', (e) => {
+        output.addEventListener('click', (e) => {
           // Determine if a hidden word was clicked
           let target = e.target;
           if (target.classList.contains('hidden-word') || target.closest('.hidden-word')) {
@@ -688,23 +726,6 @@
             hiddenWordSpan.classList.remove('hidden-word', 'no-first-letter');
           }
         });
-
-        // Append elements to detailsContainer
-        detailsContainer.appendChild(audioElement);
-        detailsContainer.appendChild(controlsDiv); // Add controls here
-        detailsContainer.appendChild(info);
-        detailsContainer.appendChild(deleteBtn);
-        detailsContainer.appendChild(memorizationBtn);
-        detailsContainer.appendChild(memorizationSection);
-
-        // Toggle functionality
-        titleButton.addEventListener('click', () => {
-          detailsContainer.classList.toggle('active');
-        });
-
-        audioItem.appendChild(titleButton);
-        audioItem.appendChild(detailsContainer);
-        audioList.appendChild(audioItem);
       });
     } catch (error) {
       console.error('Error fetching audios:', error);
