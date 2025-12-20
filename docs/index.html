@@ -346,6 +346,23 @@
       background-color: var(--memorization-button-hover-bg);
     }
 
+    .download-btn {
+      margin-top: 10px;
+      padding: 10px 14px;
+      background-color: var(--button-bg);
+      color: var(--button-color);
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background-color 0.3s, color 0.3s;
+      align-self: flex-start;
+    }
+
+    .download-btn:hover {
+      background-color: var(--button-hover-bg);
+    }
+
     /* Responsive Design */
     @media (max-width: 600px) {
       .audio-item {
@@ -639,6 +656,13 @@
         detailsContainer.appendChild(memorizationBtn);
         detailsContainer.appendChild(memorizationContainer);
 
+        // Download Button
+        const downloadBtn = document.createElement('button');
+        downloadBtn.className = 'download-btn';
+        downloadBtn.textContent = 'Download';
+        downloadBtn.addEventListener('click', () => downloadAudio(audio));
+        detailsContainer.appendChild(downloadBtn);
+
         // Toggle functionality for detailsContainer
         titleButton.addEventListener('click', () => {
           detailsContainer.classList.toggle('active');
@@ -736,6 +760,38 @@
     } catch (error) {
       console.error('Error fetching audios:', error);
       alert('Failed to fetch audios.');
+    }
+  }
+
+  function sanitizeFilename(name) {
+    const cleaned = name.replace(/[\\/:*?"<>|]+/g, '_').trim();
+    return cleaned || 'audio';
+  }
+
+  async function downloadAudio(audio) {
+    const filename = `${sanitizeFilename(audio.title || 'audio')}.mp3`;
+
+    try {
+      const response = await fetch(audio.url);
+
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      console.error('Error downloading audio:', error);
+      alert('Failed to download audio.');
     }
   }
 
