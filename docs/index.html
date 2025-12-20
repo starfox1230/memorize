@@ -772,7 +772,7 @@
     const filename = `${sanitizeFilename(audio.title || 'audio')}.mp3`;
 
     try {
-      const response = await fetch(audio.url);
+      const response = await fetch(`${BACKEND_URL}/download-audio?id=${encodeURIComponent(audio.id)}`);
 
       if (!response.ok) {
         throw new Error('Network response was not ok');
