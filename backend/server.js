@@ -167,6 +167,57 @@ app.delete('/delete-audio', async (req, res) => {
   }
 });
 
+// Endpoint to download audio (avoids CORS issues with direct Storage fetches)
+app.get('/download-audio', async (req, res) => {
+  const { id } = req.query;
+
+  try {
+    if (!id) {
+      console.warn('No ID provided in /download-audio request.');
+      return res.status(400).json({ error: 'Audio ID is required.' });
+    }
+
+    const docRef = db.collection('audios').doc(id);
+    const doc = await docRef.get();
+
+    if (!doc.exists) {
+      console.warn(`No audio found with ID: ${id}`);
+      return res.status(404).json({ error: 'Audio not found.' });
+    }
+
+    const audioData = doc.data();
+    const filePath = audioData.filePath;
+    const title = audioData.title || 'audio';
+    const sanitizedTitle = title.replace(/[\\/:*?"<>|]+/g, '_').trim() || 'audio';
+
+    const file = bucket.file(filePath);
+    const [exists] = await file.exists();
+
+    if (!exists) {
+      console.warn(`File not found for path: ${filePath}`);
+      return res.status(404).json({ error: 'Audio file not found.' });
+    }
+
+    res.setHeader('Content-Type', 'audio/mpeg');
+    res.setHeader('Content-Disposition', `attachment; filename="${sanitizedTitle}.mp3"`);
+
+    const readStream = file.createReadStream();
+    readStream.on('error', (err) => {
+      console.error('Error reading file stream:', err);
+      if (!res.headersSent) {
+        res.status(500).json({ error: 'Failed to download audio.' });
+      } else {
+        res.end();
+      }
+    });
+
+    readStream.pipe(res);
+  } catch (error) {
+    console.error('Error in /download-audio:', error);
+    res.status(500).json({ error: 'Failed to download audio.' });
+  }
+});
+
 // Root endpoint
 app.get('/', (req, res) => {
   res.send('Memorize API is running.');
