@@ -164,6 +164,40 @@
       margin-top: 30px;
     }
 
+    .loading-indicator {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      color: var(--secondary-text-color);
+      margin: 10px 0 0 0;
+      font-size: 0.95em;
+    }
+
+    .loading-indicator .dot {
+      animation: blink 1.4s infinite both;
+    }
+
+    .loading-indicator .dot:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    .loading-indicator .dot:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+
+    @keyframes blink {
+      0%,
+      20% {
+        opacity: 0;
+      }
+      50% {
+        opacity: 1;
+      }
+      100% {
+        opacity: 0;
+      }
+    }
+
     .audio-item {
       display: flex;
       flex-direction: column;
@@ -438,6 +472,43 @@
   let recordedChunks = [];
   let isRecording = false;
 
+  function showAudioLoading() {
+    audioList.innerHTML = `
+      <h2>Generated Audios</h2>
+      <div class="loading-indicator">
+        <span>Fetching Audio</span>
+        <span class="dot dot1">.</span>
+        <span class="dot dot2">.</span>
+        <span class="dot dot3">.</span>
+      </div>
+    `;
+  }
+
+  function formatTimestamp(timestamp) {
+    if (!timestamp) return 'Unknown date';
+
+    if (typeof timestamp.toDate === 'function') {
+      return timestamp.toDate().toLocaleString();
+    }
+
+    if (typeof timestamp.seconds === 'number') {
+      return new Date(timestamp.seconds * 1000).toLocaleString();
+    }
+
+    if (typeof timestamp._seconds === 'number') {
+      return new Date(timestamp._seconds * 1000).toLocaleString();
+    }
+
+    if (typeof timestamp === 'number' || typeof timestamp === 'string') {
+      const parsedDate = new Date(timestamp);
+      if (!isNaN(parsedDate.getTime())) {
+        return parsedDate.toLocaleString();
+      }
+    }
+
+    return 'Unknown date';
+  }
+
   generateBtn.addEventListener('click', async () => {
     const title = titleInput.value.trim(); // Get title
     const text = textInput.value.trim();
@@ -608,6 +679,7 @@
   }
 
   async function fetchAudios() {
+    showAudioLoading();
     try {
       const res = await fetch(`${BACKEND_URL}/audios`);
       const audios = await res.json();
@@ -710,9 +782,7 @@
 
         const info = document.createElement('div');
         info.className = 'audio-info';
-        const timestamp = audio.timestamp 
-          ? new Date(audio.timestamp.seconds * 1000).toLocaleString() 
-          : 'N/A';
+        const timestamp = formatTimestamp(audio.timestamp);
         info.textContent = `${audio.text} (${timestamp})`;
 
         const deleteBtn = document.createElement('button');
@@ -885,7 +955,10 @@
       });
     } catch (error) {
       console.error('Error fetching audios:', error);
-      alert('Failed to fetch audios.');
+      audioList.innerHTML = `
+        <h2>Generated Audios</h2>
+        <p>Failed to fetch audios. Please try again.</p>
+      `;
     }
   }
 
