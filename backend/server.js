@@ -34,7 +34,7 @@ app.use(
     methods: ['GET', 'POST', 'DELETE'],
   })
 );
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 
 // Initialize OpenAI
 const openai = new OpenAI({
@@ -107,6 +107,60 @@ app.post('/generate-audio', async (req, res) => {
   } catch (error) {
     console.error('Error generating audio:', error);
     res.status(500).json({ error: 'Failed to generate audio.' });
+  }
+});
+
+// Endpoint to upload recorded audio with title and text
+app.post('/upload-audio', async (req, res) => {
+  try {
+    const { title, text, audioData, mimeType } = req.body;
+
+    console.log('Received /upload-audio request:', { title, text, mimeType });
+
+    if (!title || !text || !audioData) {
+      console.warn('Title, text, or audio data missing in the request.');
+      return res.status(400).json({ error: 'Title, text, and audio data are required.' });
+    }
+
+    const extension = (mimeType && mimeType.split('/')[1]) || 'webm';
+    const buffer = Buffer.from(audioData, 'base64');
+    const timestamp = Date.now();
+    const filename = `audios/recording_${timestamp}.${extension}`;
+
+    console.log(`Uploading recorded audio to Firebase Storage with filename: ${filename}`);
+
+    const file = bucket.file(filename);
+    await file.save(buffer, {
+      metadata: {
+        contentType: mimeType || 'audio/webm',
+      },
+    });
+
+    console.log('Recorded audio uploaded to Firebase Storage.');
+
+    await file.makePublic();
+    console.log('Recorded audio file made public.');
+
+    const publicUrl = `https://storage.googleapis.com/${bucket.name}/${file.name}`;
+    console.log(`Public URL generated for recorded audio: ${publicUrl}`);
+
+    const docRef = await db.collection('audios').add({
+      title: title,
+      text: text,
+      url: publicUrl,
+      voice: 'recording',
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      filePath: filename,
+    });
+
+    console.log('Recorded audio metadata saved to Firestore with ID:', docRef.id);
+
+    res
+      .status(200)
+      .json({ message: 'Recorded audio uploaded successfully.', url: publicUrl, id: docRef.id });
+  } catch (error) {
+    console.error('Error uploading recorded audio:', error);
+    res.status(500).json({ error: 'Failed to upload recorded audio.' });
   }
 });
 
