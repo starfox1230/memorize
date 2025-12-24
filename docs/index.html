@@ -413,6 +413,7 @@
       <!-- Add more voice options as per OpenAI's available voices -->
     </select>
     <button id="generate-btn">Generate Audio</button>
+    <button id="record-btn">Record Audio</button>
 
     <div class="audio-list" id="audio-list">
       <h2>Generated Audios</h2>
@@ -422,16 +423,20 @@
 
 <script>
   const generateBtn = document.getElementById('generate-btn');
+  const recordBtn = document.getElementById('record-btn');
   const textInput = document.getElementById('text-input');
   const titleInput = document.getElementById('title-input'); // New title input
   const voiceSelect = document.getElementById('voice-select');
   const audioList = document.getElementById('audio-list');
 
   // Replace with your deployed backend URL on Render
-  const BACKEND_URL = 'https://memorize-backend-lf3t.onrender.com'; 
+  const BACKEND_URL = 'https://memorize-backend-lf3t.onrender.com';
 
   // Variable to keep track of the last interacted audio element
   let lastPlayedAudio = null;
+  let mediaRecorder = null;
+  let recordedChunks = [];
+  let isRecording = false;
 
   generateBtn.addEventListener('click', async () => {
     const title = titleInput.value.trim(); // Get title
@@ -480,6 +485,127 @@
       generateBtn.innerText = 'Generate Audio';
     }
   });
+
+  recordBtn.addEventListener('click', async () => {
+    if (isRecording) {
+      stopRecording();
+      return;
+    }
+
+    const title = titleInput.value.trim();
+    const text = textInput.value.trim();
+
+    if (!title || !text) {
+      alert('Please enter both a title and some text before recording.');
+      return;
+    }
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      alert('Audio recording is not supported in this browser.');
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      recordedChunks = [];
+      mediaRecorder = new MediaRecorder(stream);
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          recordedChunks.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        const blob = new Blob(recordedChunks, { type: 'audio/webm' });
+        stopTracks(stream);
+        await uploadRecording(blob, { title, text });
+      };
+
+      mediaRecorder.start();
+      isRecording = true;
+      recordBtn.innerText = 'Stop Recording';
+      toggleInputsDuringRecording(true);
+    } catch (error) {
+      console.error('Error starting recording:', error);
+      alert('Failed to start recording. Please check microphone permissions.');
+      stopTracks();
+      resetRecordingState();
+    }
+  });
+
+  function stopRecording() {
+    if (mediaRecorder && isRecording) {
+      isRecording = false;
+      recordBtn.innerText = 'Stopping...';
+      recordBtn.disabled = true;
+      mediaRecorder.stop();
+    }
+  }
+
+  function toggleInputsDuringRecording(disabled) {
+    generateBtn.disabled = disabled;
+    voiceSelect.disabled = disabled;
+    textInput.disabled = disabled;
+    titleInput.disabled = disabled;
+  }
+
+  function stopTracks(stream) {
+    const activeStream = stream || (mediaRecorder ? mediaRecorder.stream : null);
+    if (activeStream) {
+      activeStream.getTracks().forEach((track) => track.stop());
+    }
+  }
+
+  function resetRecordingState() {
+    isRecording = false;
+    recordBtn.disabled = false;
+    recordBtn.innerText = 'Record Audio';
+    recordedChunks = [];
+    toggleInputsDuringRecording(false);
+  }
+
+  async function uploadRecording(blob, { title, text }) {
+    try {
+      recordBtn.innerText = 'Uploading...';
+      const base64Audio = await blobToBase64(blob);
+
+      const response = await fetch(`${BACKEND_URL}/upload-audio`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, text, mimeType: blob.type, audioData: base64Audio }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert('Recording uploaded successfully!');
+        titleInput.value = '';
+        textInput.value = '';
+        fetchAudios();
+      } else {
+        alert(`Error: ${data.error}`);
+      }
+    } catch (error) {
+      console.error('Error uploading recording:', error);
+      alert('Failed to upload recording.');
+    } finally {
+      resetRecordingState();
+    }
+  }
+
+  function blobToBase64(blob) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result;
+        const base64Data = typeof result === 'string' ? result.split(',')[1] : '';
+        resolve(base64Data);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  }
 
   async function fetchAudios() {
     try {
