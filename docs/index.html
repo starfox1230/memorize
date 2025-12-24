@@ -462,6 +462,13 @@
   const titleInput = document.getElementById('title-input'); // New title input
   const voiceSelect = document.getElementById('voice-select');
   const audioList = document.getElementById('audio-list');
+  const PREFERRED_MIME_TYPES = [
+    'audio/mp4',
+    'audio/mpeg',
+    'audio/webm;codecs=opus',
+    'audio/ogg;codecs=opus',
+    'audio/webm',
+  ];
 
   // Replace with your deployed backend URL on Render
   const BACKEND_URL = 'https://memorize-backend-lf3t.onrender.com';
@@ -471,6 +478,15 @@
   let mediaRecorder = null;
   let recordedChunks = [];
   let isRecording = false;
+  let recordingMimeType = null;
+
+  function getPreferredMimeType() {
+    if (!window.MediaRecorder || typeof MediaRecorder.isTypeSupported !== 'function') {
+      return null;
+    }
+
+    return PREFERRED_MIME_TYPES.find((type) => MediaRecorder.isTypeSupported(type)) || null;
+  }
 
   function showAudioLoading() {
     audioList.innerHTML = `
@@ -577,9 +593,13 @@
     }
 
     try {
+      const preferredMimeType = getPreferredMimeType();
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       recordedChunks = [];
-      mediaRecorder = new MediaRecorder(stream);
+      mediaRecorder = preferredMimeType
+        ? new MediaRecorder(stream, { mimeType: preferredMimeType })
+        : new MediaRecorder(stream);
+      recordingMimeType = mediaRecorder.mimeType || preferredMimeType || 'audio/webm';
 
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
@@ -588,9 +608,10 @@
       };
 
       mediaRecorder.onstop = async () => {
-        const blob = new Blob(recordedChunks, { type: 'audio/webm' });
+        const finalMimeType = recordingMimeType || 'audio/webm';
+        const blob = new Blob(recordedChunks, { type: finalMimeType });
         stopTracks(stream);
-        await uploadRecording(blob, { title, text });
+        await uploadRecording(blob, { title, text, mimeType: finalMimeType });
       };
 
       mediaRecorder.start();
@@ -633,10 +654,11 @@
     recordBtn.disabled = false;
     recordBtn.innerText = 'Record Audio';
     recordedChunks = [];
+    recordingMimeType = null;
     toggleInputsDuringRecording(false);
   }
 
-  async function uploadRecording(blob, { title, text }) {
+  async function uploadRecording(blob, { title, text, mimeType }) {
     try {
       recordBtn.innerText = 'Uploading...';
       const base64Audio = await blobToBase64(blob);
@@ -644,7 +666,7 @@
       const response = await fetch(`${BACKEND_URL}/upload-audio`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, text, mimeType: blob.type, audioData: base64Audio }),
+        body: JSON.stringify({ title, text, mimeType: mimeType || blob.type, audioData: base64Audio }),
       });
 
       const data = await response.json();
@@ -700,7 +722,7 @@
 
         const audioElement = document.createElement('audio');
         audioElement.controls = true;
-        audioElement.src = audio.url;
+        audioElement.src = `${BACKEND_URL}/download-audio?id=${encodeURIComponent(audio.id)}`;
         audioElement.loop = true; // Enable looping
 
         // Event listeners to update lastPlayedAudio when interacted with

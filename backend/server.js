@@ -26,6 +26,7 @@ const bucket = admin.storage().bucket();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+const DEFAULT_AUDIO_MIME = 'audio/mpeg';
 
 // Middleware
 app.use(
@@ -40,6 +41,16 @@ app.use(express.json({ limit: '10mb' }));
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
+
+function mimeTypeToExtension(mimeType = DEFAULT_AUDIO_MIME) {
+  const normalized = mimeType.toLowerCase();
+  if (normalized.includes('mpeg') || normalized.includes('mp3')) return 'mp3';
+  if (normalized.includes('mp4')) return 'm4a';
+  if (normalized.includes('ogg')) return 'ogg';
+  if (normalized.includes('wav')) return 'wav';
+  if (normalized.includes('webm')) return 'webm';
+  return 'audio';
+}
 
 // Endpoint to generate audio with title
 app.post('/generate-audio', async (req, res) => {
@@ -96,6 +107,7 @@ app.post('/generate-audio', async (req, res) => {
       text: text,
       url: publicUrl,
       voice: voice || 'alloy',
+      mimeType: DEFAULT_AUDIO_MIME,
       timestamp: admin.firestore.FieldValue.serverTimestamp(),
       filePath: filename, // Store the exact path in Firestore
     });
@@ -122,8 +134,8 @@ app.post('/upload-audio', async (req, res) => {
       return res.status(400).json({ error: 'Title, text, and audio data are required.' });
     }
 
-    const baseMimeType = (mimeType && mimeType.split(';')[0]) || 'audio/webm';
-    const extension = (baseMimeType.split('/')[1] || 'webm').toLowerCase();
+    const baseMimeType = (mimeType && mimeType.split(';')[0]) || DEFAULT_AUDIO_MIME;
+    const extension = mimeTypeToExtension(baseMimeType);
     const buffer = Buffer.from(audioData, 'base64');
     const timestamp = Date.now();
     const filename = `audios/recording_${timestamp}.${extension}`;
@@ -152,6 +164,7 @@ app.post('/upload-audio', async (req, res) => {
       voice: 'recording',
       timestamp: admin.firestore.FieldValue.serverTimestamp(),
       filePath: filename,
+      mimeType: baseMimeType,
     });
 
     console.log('Recorded audio metadata saved to Firestore with ID:', docRef.id);
@@ -243,7 +256,9 @@ app.get('/download-audio', async (req, res) => {
     const audioData = doc.data();
     const filePath = audioData.filePath;
     const title = audioData.title || 'audio';
+    const mimeType = audioData.mimeType || DEFAULT_AUDIO_MIME;
     const sanitizedTitle = title.replace(/[\\/:*?"<>|]+/g, '_').trim() || 'audio';
+    const extension = mimeTypeToExtension(mimeType);
 
     const file = bucket.file(filePath);
     const [exists] = await file.exists();
@@ -253,8 +268,11 @@ app.get('/download-audio', async (req, res) => {
       return res.status(404).json({ error: 'Audio file not found.' });
     }
 
-    res.setHeader('Content-Type', 'audio/mpeg');
-    res.setHeader('Content-Disposition', `attachment; filename="${sanitizedTitle}.mp3"`);
+    res.setHeader('Content-Type', mimeType);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${sanitizedTitle}.${extension}"`
+    );
 
     const readStream = file.createReadStream();
     readStream.on('error', (err) => {
