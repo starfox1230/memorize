@@ -122,7 +122,8 @@ app.post('/upload-audio', async (req, res) => {
       return res.status(400).json({ error: 'Title, text, and audio data are required.' });
     }
 
-    const extension = (mimeType && mimeType.split('/')[1]) || 'webm';
+    const baseMimeType = (mimeType && mimeType.split(';')[0]) || 'audio/webm';
+    const extension = (baseMimeType.split('/')[1] || 'webm').toLowerCase();
     const buffer = Buffer.from(audioData, 'base64');
     const timestamp = Date.now();
     const filename = `audios/recording_${timestamp}.${extension}`;
@@ -132,7 +133,7 @@ app.post('/upload-audio', async (req, res) => {
     const file = bucket.file(filename);
     await file.save(buffer, {
       metadata: {
-        contentType: mimeType || 'audio/webm',
+        contentType: baseMimeType,
       },
     });
 
